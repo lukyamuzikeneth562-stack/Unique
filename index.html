@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Textbook</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; text-align: center; margin: 0; padding: 0; overflow-x: hidden; }
+        .card { background: #1e1e1e; padding: 30px 20px; border-radius: 20px; max-width: 400px; margin: 50px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+        #device-id { background: #000; color: #00ff00; padding: 15px; font-family: monospace; font-size: 1.8rem; margin: 20px 0; border-radius: 10px; border: 1px dashed #00ff00; }
+        input { width: 80%; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: white; font-size: 1rem; }
+        .btn { width: 85%; padding: 15px; margin: 8px 0; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s; }
+        .btn-wa { background: #25D366; color: white; }
+        .btn-unlock { background: #007bff; color: white; margin-top: 15px; }
+        #pdf-view { display: none; width: 100vw; height: 100vh; border: none; }
+        .hidden { display: none; }
+        @media print { body { display: none !important; } }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div id="lock-screen" class="card">
+        <h2 style="margin-top:0;">🔒 Book Locked</h2>
+        <p style="color: #bbb;">To get your unlock code, message the author with this ID:</p>
+        
+        <div id="device-id">Loading...</div>
+
+        <button class="btn btn-wa" onclick="sendWA('256703078891')">WhatsApp (Airtel)</button>
+        <button class="btn btn-wa" onclick="sendWA('256785600165')">WhatsApp (MTN)</button>
+
+        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+        
+        <input type="number" id="user-key" placeholder="Enter Unlock Code">
+        <button class="btn btn-unlock" onclick="checkCode()">Unlock Textbook</button>
+    </div>
+
+    <iframe id="pdf-view" src="mybook.pdf#toolbar=0"></iframe>
+
+    <script>
+        // Unique ID logic
+        const screenKey = window.screen.width * window.screen.height;
+        const deviceID = Math.floor(screenKey / 7) + window.navigator.userAgent.length;
+        document.getElementById('device-id').innerText = deviceID;
+
+        const mySecret = 19622003; 
+
+        function sendWA(num) {
+            const id = document.getElementById('device-id').innerText;
+            const msg = encodeURIComponent("Hello! I want to buy your textbook. My Device ID is: " + id);
+            window.location.href = "https://wa.me/" + num + "?text=" + msg;
+        }
+
+        function checkCode() {
+            const input = document.getElementById('user-key').value;
+            if (parseInt(input) === (parseInt(deviceID) + mySecret)) {
+                localStorage.setItem('textbook_unlocked', 'true');
+                showBook();
+            } else {
+                alert("Invalid Code. Please pay to receive your secret key.");
+            }
+        }
+
+        function showBook() {
+            document.getElementById('lock-screen').classList.add('hidden');
+            document.getElementById('pdf-view').style.display = 'block';
+        }
+
+        if(localStorage.getItem('textbook_unlocked') === 'true') { showBook(); }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
