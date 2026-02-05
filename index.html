@@ -6,53 +6,33 @@
     <title>Unique Upper Primary Maths</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <style>
-        /* Base Styling */
         body { font-family: sans-serif; background: #121212; color: white; margin: 0; text-align: center; overflow-x: hidden; }
-        .card { background: #1e1e1e; padding: 30px; border-radius: 20px; max-width: 400px; margin: 50px auto; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        /* Locking & ID UI */
-        #device-id { background: #000; color: #00ff00; padding: 15px; font-family: monospace; font-size: 1.5rem; margin: 20px 0; border-radius: 10px; border: 1px dashed #00ff00; }
+        .card { background: #1e1e1e; padding: 30px; border-radius: 20px; max-width: 400px; margin: 50px auto; border: 1px solid #333; }
+        #device-id { background: #000; color: #00ff00; padding: 15px; font-family: monospace; font-size: 1.2rem; margin: 20px 0; border-radius: 10px; border: 1px dashed #00ff00; word-break: break-all; }
         input, select { width: 90%; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: white; font-size: 1rem; }
         .btn { width: 85%; padding: 15px; margin: 8px 0; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
         .btn-airtel { background: #ff0000; color: white; }
         .btn-mtn { background: #ffcc00; color: black; }
         .btn-unlock { background: #007bff; color: white; }
-
-        /* Mobile Anti-Theft Protection */
-        canvas { 
-            display: block; 
-            margin: 15px auto; 
-            width: 100%; 
-            max-width: 800px; 
-            background: white; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.7);
-            /* Disable Long-Press/Save Image on iPhone & Android */
-            -webkit-touch-callout: none !important;
-            -webkit-user-select: none !important;
-            user-select: none !important;
-            pointer-events: none; /* User scrolls the container, not the canvas */
-        }
-
-        #pdf-main-container { display: none; background: #121212; -webkit-user-select: none; }
+        #pdf-main-container { display: none; background: #121212; }
         #topic-header { position: sticky; top: 0; background: #1e1e1e; padding: 10px; z-index: 1000; border-bottom: 1px solid #333; }
+        canvas { display: block; margin: 15px auto; width: 100%; max-width: 800px; background: white; pointer-events: none; }
         #page-loader { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.9); padding: 12px; border-radius: 10px; z-index: 100; font-size: 12px; }
-        
-        /* Print/PDF Export Blocking */
-        @media print { body { display: none !important; } }
+        /* Shouting Watermark Style */
+        .watermark-red { color: rgba(255, 0, 0, 0.4); font-weight: bold; }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
     <div id="lock-screen" class="card">
-        <h2 style="margin-top:0;">🔒 Book Locked</h2>
-        <p style="color: #bbb;">Message author with this ID to unlock:</p>
+        <h2 onclick="secretAdmin()">🔒 Book Locked</h2>
+        <p style="color: #bbb;">Message author with this ID:</p>
         <div id="device-id">Loading ID...</div>
         <button class="btn btn-airtel" onclick="sendWA('256703078891')">WhatsApp (Airtel)</button>
         <button class="btn btn-mtn" onclick="sendWA('256785600165')">WhatsApp (MTN)</button>
         <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
-        <input type="number" id="user-key" placeholder="Enter Unlock Code">
+        <input type="number" id="user-key" placeholder="Enter 8-Digit Code">
         <button class="btn btn-unlock" onclick="checkCode()">Unlock All Topics</button>
     </div>
 
@@ -80,31 +60,48 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
     <script>
-        // --- DEVICE ID & SECURITY ---
-        const screenKey = window.screen.width * window.screen.height;
-        const deviceID = Math.floor(screenKey / 7) + window.navigator.userAgent.length;
+        // --- THE COMPLEX MATH (ALGORITHM) ---
+        function calculateComplexCode(id) {
+            // A mix of Sine, Large Primes, and Modulo logic
+            const mathMagic = Math.abs(Math.sin(id) * 10000000);
+            const scramble = (id * 157) + 997;
+            const final = Math.floor(mathMagic + scramble) % 100000000;
+            return final.toString().padStart(8, '0');
+        }
+
+        // --- DEVICE ID ---
+        const deviceID = Math.floor((window.screen.width * window.screen.height) / 3) + window.navigator.userAgent.length;
         document.getElementById('device-id').innerText = deviceID;
-        
+
         function checkCode() {
             const input = document.getElementById('user-key').value;
-            if (parseInt(input) === (parseInt(deviceID) + 19622003)) {
+            if (input === calculateComplexCode(deviceID)) {
                 localStorage.setItem('unlocked', 'true');
                 showBook();
-            } else { alert("Wrong Code."); }
+            } else { alert("Access Denied: Invalid Code."); }
+        }
+
+        // --- SECRET ADMIN TOOL (Hidden inside the 🔒 icon) ---
+        let clickCount = 0;
+        function secretAdmin() {
+            clickCount++;
+            if (clickCount === 10) { // Click "Book Locked" 10 times to open
+                const checkID = prompt("ADMIN: Enter Student ID to generate code:");
+                if(checkID) alert("Student Code is: " + calculateComplexCode(checkID));
+                clickCount = 0;
+            }
         }
 
         function sendWA(n) { window.location.href=`https://wa.me/${n}?text=ID:${deviceID}`; }
 
-        // --- PDF ENGINE ---
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
         async function loadTopic(fileName) {
             const viewer = document.getElementById('pdf-viewer');
-            viewer.innerHTML = ''; 
+            viewer.innerHTML = '';
             document.getElementById('page-loader').style.display = 'block';
             window.scrollTo(0,0);
-
             try {
                 const pdf = await pdfjsLib.getDocument(fileName).promise;
                 for (let num = 1; num <= pdf.numPages; num++) {
@@ -112,21 +109,18 @@
                     const viewport = page.getViewport({ scale: 1.5 });
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
+                    canvas.height = viewport.height; canvas.width = viewport.width;
                     viewer.appendChild(canvas);
-
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-                    // --- ENHANCED GRID WATERMARK ---
-                    ctx.font = "bold 18px Arial";
-                    ctx.fillStyle = "rgba(180, 180, 180, 0.2)";
+                    // --- SHOUTING RED WATERMARK ---
+                    ctx.font = "bold 32px Arial";
+                    ctx.fillStyle = "rgba(255, 0, 0, 0.35)";
                     ctx.textAlign = "center";
-                    // Repeat ID across the page so screenshots are traceable
-                    for (let x = 0; x < canvas.width; x += 300) {
-                        for (let y = 0; y < canvas.height; y += 250) {
+                    for (let x = 0; x < canvas.width; x += 350) {
+                        for (let y = 0; y < canvas.height; y += 300) {
                             ctx.save();
-                            ctx.translate(x + 100, y + 150);
+                            ctx.translate(x + 150, y + 150);
                             ctx.rotate(-Math.PI / 4);
                             ctx.fillText("ID: " + deviceID, 0, 0);
                             ctx.restore();
@@ -134,7 +128,7 @@
                     }
                     document.getElementById('current-load').innerText = `${num}/${pdf.numPages}`;
                 }
-            } catch (e) { alert("Connect to internet to load this topic."); }
+            } catch (e) { alert("Download failed. Check internet."); }
             document.getElementById('page-loader').style.display = 'none';
         }
 
@@ -145,16 +139,8 @@
         }
 
         if(localStorage.getItem('unlocked') === 'true') { showBook(); }
-
-        // --- MOBILE ANTI-SCREENSHOT BLUR ---
-        // Blurs if user opens the App Switcher or Notification Center to try and screenshot
         window.onblur = () => { document.body.style.filter = "blur(30px)"; }
         window.onfocus = () => { document.body.style.filter = "none"; }
-        
-        // Disable keyboard shortcuts just in case
-        window.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) e.preventDefault();
-        });
     </script>
 </body>
 </html>
