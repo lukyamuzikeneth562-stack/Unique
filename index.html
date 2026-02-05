@@ -7,27 +7,20 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        /* General Styling */
-        body { font-family: sans-serif; background: #121212; color: white; margin: 0; text-align: center; -webkit-tap-highlight-color: transparent; }
+        /* Base Styling */
+        body { font-family: sans-serif; background: #121212; color: white; margin: 0; text-align: center; overflow-x: hidden; }
         .card { background: #1e1e1e; padding: 30px; border-radius: 20px; max-width: 400px; margin: 50px auto; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        /* Locking & Input UI */
+        /* Locking & ID UI */
         #device-id { background: #000; color: #00ff00; padding: 15px; font-family: monospace; font-size: 1.5rem; margin: 20px 0; border-radius: 10px; border: 1px dashed #00ff00; }
-        input, select { width: 90%; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: white; font-size: 1rem; outline: none; }
-        .btn { width: 85%; padding: 15px; margin: 8px 0; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        input, select { width: 90%; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: white; font-size: 1rem; }
+        .btn { width: 85%; padding: 15px; margin: 8px 0; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
         .btn-airtel { background: #ff0000; color: white; }
         .btn-mtn { background: #ffcc00; color: black; }
-        .btn-unlock { background: #007bff; color: white; margin-top: 15px; }
+        .btn-unlock { background: #007bff; color: white; }
 
-        /* Offline Notification */
-        #offline-status { background: #444; color: #fff; padding: 10px; font-size: 14px; position: fixed; top: 0; width: 100%; z-index: 2000; display: none; }
-        .status-ready { background: #28a745 !important; }
-
-        /* Viewer & Canvas Security */
-        #pdf-main-container { display: none; background: #121212; }
-        #topic-header { position: sticky; top: 0; background: #1e1e1e; padding: 10px; z-index: 1000; border-bottom: 1px solid #333; }
+        /* Mobile Anti-Theft Protection */
         canvas { 
             display: block; 
             margin: 15px auto; 
@@ -35,27 +28,29 @@
             max-width: 800px; 
             background: white; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.7);
+            /* Disable Long-Press/Save Image on iPhone & Android */
             -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
             user-select: none !important;
+            pointer-events: none; /* User scrolls the container, not the canvas */
         }
-        #page-loader { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.9); padding: 12px; border-radius: 10px; z-index: 100; font-size: 12px; border: 1px solid #444; }
+
+        #pdf-main-container { display: none; background: #121212; -webkit-user-select: none; }
+        #topic-header { position: sticky; top: 0; background: #1e1e1e; padding: 10px; z-index: 1000; border-bottom: 1px solid #333; }
+        #page-loader { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.9); padding: 12px; border-radius: 10px; z-index: 100; font-size: 12px; }
         
-        /* Print Protection */
+        /* Print/PDF Export Blocking */
         @media print { body { display: none !important; } }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
-    <div id="offline-status">Checking for offline updates...</div>
-
     <div id="lock-screen" class="card">
         <h2 style="margin-top:0;">🔒 Book Locked</h2>
-        <p style="color: #bbb; margin-bottom: 5px;">To get your unlock code, message the author with this ID:</p>
+        <p style="color: #bbb;">Message author with this ID to unlock:</p>
         <div id="device-id">Loading ID...</div>
-        
         <button class="btn btn-airtel" onclick="sendWA('256703078891')">WhatsApp (Airtel)</button>
         <button class="btn btn-mtn" onclick="sendWA('256785600165')">WhatsApp (MTN)</button>
-
         <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
         <input type="number" id="user-key" placeholder="Enter Unlock Code">
         <button class="btn btn-unlock" onclick="checkCode()">Unlock All Topics</button>
@@ -78,57 +73,35 @@
                 <option value="topic12.pdf">12. Algebra</option>
             </select>
         </div>
-        <div id="page-loader">Preparing Topic... <span id="current-load">0</span></div>
+        <div id="page-loader">Rendering... <span id="current-load">0</span></div>
         <div id="pdf-viewer"></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
     <script>
-        // --- A. SERVICE WORKER (OFFLINE MODE) ---
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').then(reg => {
-                const statusBar = document.getElementById('offline-status');
-                statusBar.style.display = 'block';
-                reg.addEventListener('updatefound', () => {
-                    const newWorker = reg.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed') {
-                            statusBar.innerText = "✅ Book Saved Offline!";
-                            statusBar.classList.add('status-ready');
-                            setTimeout(() => statusBar.style.display = 'none', 5000);
-                        }
-                    });
-                });
-                if (navigator.serviceWorker.controller) { statusBar.style.display = 'none'; }
-            });
-        }
-
-        // --- B. DEVICE ID & AUTH ---
+        // --- DEVICE ID & SECURITY ---
         const screenKey = window.screen.width * window.screen.height;
         const deviceID = Math.floor(screenKey / 7) + window.navigator.userAgent.length;
         document.getElementById('device-id').innerText = deviceID;
         
         function checkCode() {
             const input = document.getElementById('user-key').value;
-            // Secret Logic: Code = ID + 19622003
             if (parseInt(input) === (parseInt(deviceID) + 19622003)) {
                 localStorage.setItem('unlocked', 'true');
                 showBook();
-            } else { alert("Incorrect Code. Please contact Benjamin."); }
+            } else { alert("Wrong Code."); }
         }
 
-        function sendWA(num) { 
-            window.location.href=`https://wa.me/${num}?text=Hello, I want to unlock my Maths Book. My ID is: ${deviceID}`; 
-        }
+        function sendWA(n) { window.location.href=`https://wa.me/${n}?text=ID:${deviceID}`; }
 
-        // --- C. PDF RENDERING ENGINE ---
+        // --- PDF ENGINE ---
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
         async function loadTopic(fileName) {
             const viewer = document.getElementById('pdf-viewer');
-            viewer.innerHTML = ''; // Clear current view
+            viewer.innerHTML = ''; 
             document.getElementById('page-loader').style.display = 'block';
             window.scrollTo(0,0);
 
@@ -145,46 +118,43 @@
 
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-                    // --- SECURITY WATERMARK ---
-                    ctx.font = "bold 24px Arial";
-                    ctx.fillStyle = "rgba(180, 180, 180, 0.25)"; 
+                    // --- ENHANCED GRID WATERMARK ---
+                    ctx.font = "bold 18px Arial";
+                    ctx.fillStyle = "rgba(180, 180, 180, 0.2)";
                     ctx.textAlign = "center";
-                    ctx.save();
-                    ctx.translate(canvas.width / 2, canvas.height / 2);
-                    ctx.rotate(-Math.PI / 4);
-                    // Printed 3 times diagonally
-                    ctx.fillText("LICENSED TO ID: " + deviceID, 0, -200);
-                    ctx.fillText("LICENSED TO ID: " + deviceID, 0, 0);
-                    ctx.fillText("LICENSED TO ID: " + deviceID, 0, 200);
-                    ctx.restore();
-
-                    document.getElementById('current-load').innerText = `${num} / ${pdf.numPages}`;
+                    // Repeat ID across the page so screenshots are traceable
+                    for (let x = 0; x < canvas.width; x += 300) {
+                        for (let y = 0; y < canvas.height; y += 250) {
+                            ctx.save();
+                            ctx.translate(x + 100, y + 150);
+                            ctx.rotate(-Math.PI / 4);
+                            ctx.fillText("ID: " + deviceID, 0, 0);
+                            ctx.restore();
+                        }
+                    }
+                    document.getElementById('current-load').innerText = `${num}/${pdf.numPages}`;
                 }
-            } catch (e) {
-                alert("Topic file missing or not loaded yet. Connect to internet once to sync.");
-            }
+            } catch (e) { alert("Connect to internet to load this topic."); }
             document.getElementById('page-loader').style.display = 'none';
         }
 
-        // --- D. INITIALIZATION & MEDIAN SECURITY ---
         function showBook() {
             document.getElementById('lock-screen').style.display = 'none';
             document.getElementById('pdf-main-container').style.display = 'block';
-
-            // MEDIAN.CO NATIVE SCREENSHOT PROTECTION
-            if (typeof median !== 'undefined' && median.secureScreen) {
-                median.secureScreen.set({secure: true});
-            }
-
-            loadTopic('topic1.pdf'); // Start with first topic
+            loadTopic('topic1.pdf');
         }
 
-        // Auto-unlock if already paid
         if(localStorage.getItem('unlocked') === 'true') { showBook(); }
 
-        // Security: Blur if switching apps
-        window.onblur = () => { document.body.style.filter = "blur(25px)"; }
+        // --- MOBILE ANTI-SCREENSHOT BLUR ---
+        // Blurs if user opens the App Switcher or Notification Center to try and screenshot
+        window.onblur = () => { document.body.style.filter = "blur(30px)"; }
         window.onfocus = () => { document.body.style.filter = "none"; }
+        
+        // Disable keyboard shortcuts just in case
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) e.preventDefault();
+        });
     </script>
 </body>
 </html>
