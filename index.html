@@ -3,34 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Digital Textbook</title>
+    <title>Unique Upper Primary Maths</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; margin: 0; text-align: center; }
+        /* Base Styling */
+        body { font-family: sans-serif; background: #121212; color: white; margin: 0; text-align: center; -webkit-tap-highlight-color: transparent; }
         .card { background: #1e1e1e; padding: 30px; border-radius: 20px; max-width: 400px; margin: 50px auto; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* Security & UI elements */
         #device-id { background: #000; color: #00ff00; padding: 15px; font-family: monospace; font-size: 1.5rem; margin: 20px 0; border-radius: 10px; border: 1px dashed #00ff00; }
         input { width: 80%; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: white; font-size: 1rem; }
-        .btn { width: 85%; padding: 15px; margin: 8px 0; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn { width: 85%; padding: 15px; margin: 8px 0; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
         .btn-airtel { background: #ff0000; color: white; }
         .btn-mtn { background: #ffcc00; color: black; }
         .btn-unlock { background: #007bff; color: white; margin-top: 15px; }
-        
-        /* Status Bar */
+
+        /* Offline Status Bar */
         #offline-status { background: #444; color: #fff; padding: 10px; font-size: 14px; position: fixed; top: 0; width: 100%; z-index: 2000; display: none; }
         .status-ready { background: #28a745 !important; }
 
-        /* Viewer */
+        /* Mobile Anti-Theft CSS */
+        canvas { 
+            display: block; 
+            margin: 15px auto; 
+            width: 100%; 
+            max-width: 800px; 
+            background: white; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.7);
+            /* Prevents "Save Image" on Long Press for iPhone/Android */
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;
+        }
+
         #pdf-main-container { display: none; background: #121212; padding-top: 40px; }
         #page-loader { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px; z-index: 100; font-size: 12px; }
-        .pdf-page-canvas { display: block; margin: 15px auto; width: 100%; max-width: 800px; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.7); }
+        
+        /* Block printing */
         @media print { body { display: none !important; } }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
-    <div id="offline-status">Downloading book for offline use...</div>
+    <div id="offline-status">Checking offline availability...</div>
 
     <div id="lock-screen" class="card">
         <h2 style="margin-top:0;">🔒 Book Locked</h2>
@@ -53,17 +71,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
     <script>
-        // --- 1. Service Worker & Offline Status ---
+        // --- 1. Service Worker & Offline Logic ---
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(reg => {
                 const statusBar = document.getElementById('offline-status');
                 statusBar.style.display = 'block';
-
                 reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed') {
-                            statusBar.innerText = "✅ Book Saved! You can now read offline.";
+                            statusBar.innerText = "✅ Book Saved! Ready for Offline Reading.";
                             statusBar.classList.add('status-ready');
                             setTimeout(() => statusBar.style.display = 'none', 5000);
                         }
@@ -86,9 +103,9 @@
             } else { alert("Wrong Code. Please contact author."); }
         }
 
-        function sendWA(n) { window.location.href=`https://wa.me/${n}?text=ID:${deviceID}`; }
+        function sendWA(n) { window.location.href=`https://wa.me/${n}?text=Hello, I want to unlock my Maths Book. My ID is: ${deviceID}`; }
 
-        // --- 3. PDF Rendering ---
+        // --- 3. Protected PDF Rendering ---
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
@@ -103,7 +120,24 @@
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
                 viewer.appendChild(canvas);
+
+                // Draw the actual PDF content
                 await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                // --- TRIPLE WATERMARK SECURITY ---
+                ctx.font = "bold 22px Arial";
+                ctx.fillStyle = "rgba(150, 150, 150, 0.25)"; // Semi-transparent
+                ctx.textAlign = "center";
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(-Math.PI / 4);
+                
+                // Repeated ID prevents easy cropping or erasing
+                ctx.fillText("PROPERTY OF ID: " + deviceID, 0, -200);
+                ctx.fillText("PROPERTY OF ID: " + deviceID, 0, 0);
+                ctx.fillText("PROPERTY OF ID: " + deviceID, 0, 200);
+                ctx.restore();
+
                 document.getElementById('current-load').innerText = `${num} / ${pdf.numPages}`;
             }
             document.getElementById('page-loader').style.display = 'none';
@@ -118,6 +152,10 @@
         }
 
         if(localStorage.getItem('unlocked') === 'true') { showBook(); }
+
+        // Security: Blur book if user leaves app (prevents easy switching to screenshot tools)
+        window.onblur = () => { document.body.style.filter = "blur(20px)"; }
+        window.onfocus = () => { document.body.style.filter = "none"; }
     </script>
 </body>
 </html>
