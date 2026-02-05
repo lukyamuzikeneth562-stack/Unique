@@ -5,120 +5,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Digital Textbook</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#121212">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; text-align: center; margin: 0; padding: 0; overflow-x: hidden; }
-        .card { background: #1e1e1e; padding: 30px 20px; border-radius: 20px; max-width: 400px; margin: 50px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
-        #device-id { background: #000; color: #00ff00; padding: 15px; font-family: monospace; font-size: 1.8rem; margin: 20px 0; border-radius: 10px; border: 1px dashed #00ff00; }
-        input { width: 80%; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: white; font-size: 1rem; }
-        .btn { width: 85%; padding: 15px; margin: 8px 0; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s; }
+        body { font-family: sans-serif; background: #121212; color: white; margin: 0; text-align: center; }
+        .card { background: #1e1e1e; padding: 30px; border-radius: 20px; max-width: 400px; margin: 50px auto; border: 1px solid #333; }
+        #device-id { background: #000; color: #00ff00; padding: 15px; font-family: monospace; font-size: 1.5rem; margin: 20px 0; border-radius: 10px; }
+        .btn { width: 85%; padding: 15px; margin: 8px 0; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
         .btn-airtel { background: #ff0000; color: white; }
         .btn-mtn { background: #ffcc00; color: black; }
-        .btn-unlock { background: #007bff; color: white; margin-top: 15px; }
-        .btn-nav { width: auto; padding: 8px 15px; margin: 0; font-size: 0.9rem; background: #444; color: white; }
-        #pdf-container { display: none; background: #121212; min-height: 100vh; }
-        #viewer-controls { position: sticky; top: 0; background: rgba(18, 18, 18, 0.95); padding: 10px; display: flex; justify-content: center; align-items: center; gap: 8px; z-index: 100; border-bottom: 1px solid #333; }
-        canvas { display: block; margin: 0 auto; max-width: 100%; }
-        @media print { body { display: none !important; } }
+        
+        /* Viewer Styling */
+        #pdf-main-container { display: none; background: #121212; }
+        #page-loader { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px; z-index: 100; font-size: 12px; }
+        .pdf-page-canvas { display: block; margin: 10px auto; width: 100%; max-width: 800px; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     </style>
 </head>
-<body oncontextmenu="return false;">
+<body>
 
     <div id="lock-screen" class="card">
-        <h2>🔒 Book Locked</h2>
-        <p style="color: #bbb;">Message author with this ID:</p>
-        <div id="device-id">Loading...</div>
-        <button class="btn btn-airtel" onclick="sendWA('256703078891')">WhatsApp (Airtel)</button>
-        <button class="btn btn-mtn" onclick="sendWA('256785600165')">WhatsApp (MTN)</button>
-        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
-        <input type="number" id="user-key" placeholder="Enter Unlock Code">
-        <button class="btn btn-unlock" onclick="checkCode()">Unlock Textbook</button>
+        <h2>🔒 Locked</h2>
+        <div id="device-id">Loading ID...</div>
+        <button class="btn btn-airtel" onclick="sendWA('256703078891')">Airtel WhatsApp</button>
+        <button class="btn btn-mtn" onclick="sendWA('256785600165')">MTN WhatsApp</button>
+        <input type="number" id="user-key" placeholder="Enter Code" style="width:80%; padding:10px; margin:10px;">
+        <button class="btn" style="background:#007bff; color:white;" onclick="checkCode()">Unlock</button>
     </div>
 
-    <div id="pdf-container">
-        <div id="viewer-controls">
-            <button class="btn btn-nav" onclick="onPrevPage()">Prev</button>
-            <input type="number" id="page-input" placeholder="Pg #" style="width: 50px; margin:0; padding: 8px;">
-            <button class="btn btn-nav" onclick="onGoToPage()">Go</button>
-            <button class="btn btn-nav" onclick="onNextPage()">Next</button>
-        </div>
-        <canvas id="the-canvas"></canvas>
-        <p id="page-info" style="color: #888; padding: 10px;">Loading book...</p>
-    </div>
+    <div id="pdf-main-container">
+        <div id="page-loader">Loading pages... <span id="current-load">0</span></div>
+        <div id="pdf-viewer"></div> </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
     <script>
-        // --- 1. Security Logic ---
-        const screenKey = window.screen.width * window.screen.height;
-        const deviceID = Math.floor(screenKey / 7) + window.navigator.userAgent.length;
-        document.getElementById('device-id').innerText = deviceID;
-        const mySecret = 19622003; 
-
-        function sendWA(num) {
-            window.location.href = "https://wa.me/" + num + "?text=" + encodeURIComponent("ID: " + deviceID);
-        }
-
-        function checkCode() {
-            if (parseInt(document.getElementById('user-key').value) === (parseInt(deviceID) + mySecret)) {
-                localStorage.setItem('textbook_unlocked', 'true');
-                showBook();
-            } else { alert("Invalid Code."); }
-        }
-
-        // --- 2. Enhanced PDF Logic ---
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-        let pdfDoc = null, pageNum = 1, pageRendering = false, pageNumPending = null;
-        const canvas = document.getElementById('the-canvas'), ctx = canvas.getContext('2d');
+        let pdfDoc = null;
+        const viewer = document.getElementById('pdf-viewer');
 
-        function renderPage(num) {
-            pageRendering = true;
-            pdfDoc.getPage(num).then((page) => {
-                const viewport = page.getViewport({scale: window.innerWidth / page.getViewport({scale: 1.0}).width});
+        // This function creates a canvas for a specific page and renders it
+        async function renderAllPages(pdf) {
+            for (let num = 1; num <= pdf.numPages; num++) {
+                const page = await pdf.getPage(num);
+                const viewport = page.getViewport({ scale: 1.5 }); // Adjust scale for clarity
+                
+                // Create a new canvas element for this page
+                const canvas = document.createElement('canvas');
+                canvas.className = 'pdf-page-canvas';
+                const ctx = canvas.getContext('2d');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
 
-                const renderContext = { canvasContext: ctx, viewport: viewport };
-                const renderTask = page.render(renderContext);
+                // Add canvas to the viewer
+                viewer.appendChild(canvas);
 
-                renderTask.promise.then(() => {
-                    pageRendering = false;
-                    if (pageNumPending !== null) {
-                        renderPage(pageNumPending);
-                        pageNumPending = null;
-                    }
-                });
-            });
-            document.getElementById('page-info').textContent = `Page ${num} of ${pdfDoc.numPages}`;
-        }
-
-        function queueRenderPage(num) {
-            if (pageRendering) { pageNumPending = num; } else { renderPage(num); }
-        }
-
-        function onPrevPage() { if (pageNum <= 1) return; pageNum--; queueRenderPage(pageNum); }
-        function onNextPage() { if (pageNum >= pdfDoc.numPages) return; pageNum++; queueRenderPage(pageNum); }
-        function onGoToPage() {
-            const val = parseInt(document.getElementById('page-input').value);
-            if (val > 0 && val <= pdfDoc.numPages) { pageNum = val; queueRenderPage(pageNum); }
+                // Render the page into the canvas
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                
+                // Update progress indicator
+                document.getElementById('current-load').innerText = `${num} / ${pdf.numPages}`;
+            }
+            document.getElementById('page-loader').style.display = 'none';
         }
 
         function showBook() {
             document.getElementById('lock-screen').style.display = 'none';
-            document.getElementById('pdf-container').style.display = 'block';
-            pdfjsLib.getDocument('mybook.pdf').promise.then((pdf) => {
+            document.getElementById('pdf-main-container').style.display = 'block';
+            
+            pdfjsLib.getDocument('mybook.pdf').promise.then(pdf => {
                 pdfDoc = pdf;
-                renderPage(pageNum);
-            }).catch(err => { alert("Error loading PDF. Check file name."); });
+                renderAllPages(pdf);
+            }).catch(err => {
+                alert("Error: Ensure mybook.pdf is in the same folder.");
+            });
         }
 
-        if(localStorage.getItem('textbook_unlocked') === 'true') { showBook(); }
+        // --- ID & Auth Logic ---
+        const screenKey = window.screen.width * window.screen.height;
+        const deviceID = Math.floor(screenKey / 7) + window.navigator.userAgent.length;
+        document.getElementById('device-id').innerText = deviceID;
+        
+        function checkCode() {
+            if (parseInt(document.getElementById('user-key').value) === (parseInt(deviceID) + 19622003)) {
+                localStorage.setItem('unlocked', 'true');
+                showBook();
+            } else { alert("Wrong Code"); }
+        }
 
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+        function sendWA(n) { window.location.href=`https://wa.me/${n}?text=ID:${deviceID}`; }
+        if(localStorage.getItem('unlocked') === 'true') { showBook(); }
     </script>
 </body>
 </html>
