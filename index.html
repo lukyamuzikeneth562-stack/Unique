@@ -22,12 +22,18 @@
 <body>
 
     <div id="lock-screen" class="card">
-        <h2>🔒 Locked</h2>
-        <div id="device-id">Loading ID...</div>
-        <button class="btn btn-airtel" onclick="sendWA('256703078891')">Airtel WhatsApp</button>
-        <button class="btn btn-mtn" onclick="sendWA('256785600165')">MTN WhatsApp</button>
-        <input type="number" id="user-key" placeholder="Enter Code" style="width:80%; padding:10px; margin:10px;">
-        <button class="btn" style="background:#007bff; color:white;" onclick="checkCode()">Unlock</button>
+        <h2 style="margin-top:0;">🔒 Book Locked</h2>
+        
+        <p style="color: #bbb; margin-bottom: 5px;">To get your unlock code, message the author with this ID:</p>
+        
+        <div id="device-id">149979</div>
+
+        <button class="btn btn-airtel" onclick="sendWA('256703078891')">WhatsApp (Airtel)</button>
+        <button class="btn btn-mtn" onclick="sendWA('256785600165')">WhatsApp (MTN)</button>
+
+        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+        <input type="number" id="user-key" placeholder="Enter Unlock Code">
+        <button class="btn btn-unlock" onclick="checkCode()">Unlock Textbook</button>
     </div>
 
     <div id="pdf-main-container">
