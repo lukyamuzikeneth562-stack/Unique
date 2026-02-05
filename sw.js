@@ -1,32 +1,21 @@
-const CACHE_NAME = 'textbook-vfinal-cache';
+const CACHE_NAME = 'maths-v12-topics';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './mybook.pdf',
+  './topic1.pdf', './topic2.pdf', './topic3.pdf', './topic4.pdf',
+  './topic5.pdf', './topic6.pdf', './topic7.pdf', './topic8.pdf',
+  './topic9.pdf', './topic10.pdf', './topic11.pdf', './topic12.pdf',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js'
 ];
 
-// Force immediate caching
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    }).then(() => self.skipWaiting())
-  );
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
-// Take control of the app immediately
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
+self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
-// Serve files from cache first (Offline mode)
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
+self.addEventListener('fetch', (e) => {
+  e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request)));
 });
