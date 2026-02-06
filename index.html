@@ -51,7 +51,7 @@
 
     <div id="pdf-main-container">
 
-       <div id="topic-header">
+      <div id="topic-header">
     <select id="topic-selector" onchange="loadTopic(this.value)">
         <option value="topic6.pdf">1. Set Concepts</option>
         <option value="topic5.pdf">2. Whole Numbers</option>
@@ -66,16 +66,15 @@
         <option value="topic7.pdf">11. Time</option>
         <option value="topic12.pdf">12. Algebra</option>
     </select>
-</div>
+</div> 
         <div id="page-loader">Rendering... <span id="current-load">0</span></div>
         <div id="pdf-viewer"></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-
     <script>
 
-    // --- 1. UNTRACEABLE SINE-WAVE MATH ---
+// --- 1. THE MATH LOGIC ---
 function calculateComplexCode(id) {
     const mathMagic = Math.abs(Math.sin(id) * 10000000);
     const scramble = (id * 157) + 997;
@@ -83,37 +82,35 @@ function calculateComplexCode(id) {
     return final.toString().padStart(8, '0');
 }
 
-// --- 2. UNIQUE DEVICE IDENTIFICATION ---
+// --- 2. DEVICE ID ---
 const screenDim = window.screen.width * window.screen.height;
 const deviceID = Math.floor(screenDim / 3) + window.navigator.userAgent.length;
 document.getElementById('device-id').innerText = deviceID;
 
-// --- 3. ACCESS CONTROL ---
+// --- 3. UNLOCK SYSTEM ---
 function checkCode() {
     const input = document.getElementById('user-key').value;
     if (input === calculateComplexCode(deviceID)) {
         localStorage.setItem('unlocked', 'true');
         showBook();
-    } else { 
-        alert("Access Denied: Invalid Code."); 
-    }
+    } else { alert("Invalid Code."); }
 }
 
-// --- 4. HIDDEN ADMIN GENERATOR (Tap "🔒 Book Locked" 10x) ---
+// --- 4. ADMIN TOOL (10 Taps on Header) ---
 let clicks = 0;
 function secretAdmin() {
     clicks++;
     if (clicks === 10) {
-        const pass = prompt("ADMIN: Enter Password");
-        if (pass === "1962") { 
+        const pass = prompt("ADMIN PASSWORD:");
+        if (pass === "1962") {
             const sid = prompt("Enter Student ID:");
-            if(sid) alert("Code for ID " + sid + " is:\n\n" + calculateComplexCode(sid));
+            if(sid) alert("Unlock Code: " + calculateComplexCode(sid));
         }
         clicks = 0;
     }
 }
 
-// --- 5. PDF & WATERMARK ENGINE ---
+// --- 5. PDF VIEWER & WATERMARK ---
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
@@ -136,7 +133,7 @@ async function loadTopic(fileName) {
 
             await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-            // --- WATERMARK (Intensity: 0.12) ---
+            // WATERMARK
             ctx.font = "bold 30px Arial";
             ctx.fillStyle = "rgba(255, 0, 0, 0.12)"; 
             ctx.textAlign = "center";
@@ -151,33 +148,31 @@ async function loadTopic(fileName) {
             }
             document.getElementById('current-load').innerText = `${num}/${pdf.numPages}`;
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("PDF Load Error"); }
     document.getElementById('page-loader').style.display = 'none';
 }
 
-// --- 6. NAVIGATION FIX ---
+// --- 6. APP STARTUP FIX ---
 function showBook() {
     document.getElementById('lock-screen').style.display = 'none';
     document.getElementById('pdf-main-container').style.display = 'block';
     
-    // FIX: Force the dropdown menu to show the first item "1. Set Concepts"
+    // Reset the dropdown visually to the first item (Set Concepts)
     const selector = document.getElementById('topic-selector');
-    selector.selectedIndex = 0; 
+    if(selector) selector.selectedIndex = 0; 
     
-    // FIX: Load the specific file for Set Concepts (topic6.pdf)
+    // Load the file corresponding to Set Concepts
     loadTopic('topic6.pdf'); 
 }
 
-function sendWA(num) { 
-    window.location.href = `https://wa.me/${num}?text=ID:${deviceID}`; 
-}
+function sendWA(num) { window.location.href = `https://wa.me/${num}?text=ID:${deviceID}`; }
 
-if (localStorage.getItem('unlocked') === 'true') { 
-    showBook(); 
-}
+if (localStorage.getItem('unlocked') === 'true') { showBook(); }
 
-// --- 7. SCREEN PROTECTION ---
+// SCREEN PROTECTION
 window.onblur = () => { document.body.style.filter = "blur(30px)"; }
-window.onfocus = () => { document.body.style.filter = "none"; }</script>
+window.onfocus = () => { document.body.style.filter = "none"; }
+        
+  </script>
 </body>
 </html>
