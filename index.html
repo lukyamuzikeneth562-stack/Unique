@@ -75,9 +75,8 @@
 
     <script>
 
-     // --- 1. UNTRACEABLE MATH LOGIC ---
+    // --- 1. UNTRACEABLE SINE-WAVE MATH ---
 function calculateComplexCode(id) {
-    // Non-linear sine-wave scrambler: Pattern cannot be guessed by humans
     const mathMagic = Math.abs(Math.sin(id) * 10000000);
     const scramble = (id * 157) + 997;
     const final = Math.floor(mathMagic + scramble) % 100000000;
@@ -96,22 +95,19 @@ function checkCode() {
         localStorage.setItem('unlocked', 'true');
         showBook();
     } else { 
-        alert("Access Denied: Invalid Code. Please contact Benjamin."); 
+        alert("Access Denied: Invalid Code."); 
     }
 }
 
-// --- 4. HIDDEN ADMIN GENERATOR ---
-// Tap the "🔒 Book Locked" text 10 times quickly to open
+// --- 4. HIDDEN ADMIN GENERATOR (Tap "🔒 Book Locked" 10x) ---
 let clicks = 0;
 function secretAdmin() {
     clicks++;
     if (clicks === 10) {
-        const pass = prompt("ADMIN: Enter Security Password");
+        const pass = prompt("ADMIN: Enter Password");
         if (pass === "1962") { 
             const sid = prompt("Enter Student ID:");
-            if(sid) alert("Authorized Code for ID " + sid + " is:\n\n" + calculateComplexCode(sid));
-        } else { 
-            alert("Unauthorized Access."); 
+            if(sid) alert("Code for ID " + sid + " is:\n\n" + calculateComplexCode(sid));
         }
         clicks = 0;
     }
@@ -140,11 +136,10 @@ async function loadTopic(fileName) {
 
             await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-            // --- LOW INTENSITY WATERMARK ---
+            // --- WATERMARK (Intensity: 0.12) ---
             ctx.font = "bold 30px Arial";
-            ctx.fillStyle = "rgba(255, 0, 0, 0.12)"; // Subtle red at 12% opacity
+            ctx.fillStyle = "rgba(255, 0, 0, 0.12)"; 
             ctx.textAlign = "center";
-            
             for (let x = 0; x < canvas.width; x += 300) {
                 for (let y = 0; y < canvas.height; y += 250) {
                     ctx.save();
@@ -156,32 +151,33 @@ async function loadTopic(fileName) {
             }
             document.getElementById('current-load').innerText = `${num}/${pdf.numPages}`;
         }
-    } catch (e) { 
-        alert("File error. Ensure your PDFs are named correctly in your folder."); 
-    }
+    } catch (e) { console.error(e); }
     document.getElementById('page-loader').style.display = 'none';
 }
 
-// --- 6. NAVIGATION & SYSTEM UI ---
+// --- 6. NAVIGATION FIX ---
 function showBook() {
     document.getElementById('lock-screen').style.display = 'none';
     document.getElementById('pdf-main-container').style.display = 'block';
     
-    // Per your mapping: 1. Set Concepts is stored as topic6.pdf
+    // FIX: Force the dropdown menu to show the first item "1. Set Concepts"
+    const selector = document.getElementById('topic-selector');
+    selector.selectedIndex = 0; 
+    
+    // FIX: Load the specific file for Set Concepts (topic6.pdf)
     loadTopic('topic6.pdf'); 
 }
 
 function sendWA(num) { 
-    window.location.href = `https://wa.me/${num}?text=Hello, I want to unlock the Maths Book. My ID is: ${deviceID}`; 
+    window.location.href = `https://wa.me/${num}?text=ID:${deviceID}`; 
 }
 
 if (localStorage.getItem('unlocked') === 'true') { 
     showBook(); 
 }
 
-// --- 7. MOBILE SCREEN PROTECTION ---
+// --- 7. SCREEN PROTECTION ---
 window.onblur = () => { document.body.style.filter = "blur(30px)"; }
-window.onfocus = () => { document.body.style.filter = "none"; }
-    </script>
+window.onfocus = () => { document.body.style.filter = "none"; }</script>
 </body>
 </html>
