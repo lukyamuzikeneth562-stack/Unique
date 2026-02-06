@@ -74,110 +74,78 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script>
 
-// --- 1. UNTRACEABLE MATH LOGIC ---
-function calculateComplexCode(id) {
-    const mathMagic = Math.abs(Math.sin(id) * 10000000);
-    const scramble = (id * 157) + 997;
-    const final = Math.floor(mathMagic + scramble) % 100000000;
-    return final.toString().padStart(8, '0');
-}
-
-// --- 2. DEVICE ID ---
-const screenDim = window.screen.width * window.screen.height;
-const deviceID = Math.floor(screenDim / 3) + window.navigator.userAgent.length;
-document.getElementById('device-id').innerText = deviceID;
-
-// --- 3. ACCESS CONTROL ---
-function checkCode() {
-    const input = document.getElementById('user-key').value;
-    if (input === calculateComplexCode(deviceID)) {
-        localStorage.setItem('unlocked', 'true');
-        showBook();
-    } else { alert("Invalid Code."); }
-}
-
-// --- 4. ADMIN TOOL (10 Taps on Header) ---
-let clicks = 0;
-function secretAdmin() {
-    clicks++;
-    if (clicks === 10) {
-        const pass = prompt("ADMIN PASSWORD:");
-        if (pass === "1962") {
-            const sid = prompt("Enter Student ID:");
-            if(sid) alert("Unlock Code: " + calculateComplexCode(sid));
-        }
-        clicks = 0;
-    }
-}
-
-// --- 5. PDF VIEWER & WATERMARK ---
-const pdfjsLib = window['pdfjs-dist/build/pdf'];
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-
 async function loadTopic(fileName) {
-    // This stops the app from "stacking" different topics on top of each other
+    if (!fileName) return;
+
     const viewer = document.getElementById('pdf-viewer');
+    
+    // FORCE CLEAR: This stops the 'interchanging' bug
     viewer.innerHTML = ''; 
     
+    // Stop any existing PDF tasks
+    if (window.currentPDFTask) {
+        await window.currentPDFTask.destroy();
+    }
+
     document.getElementById('page-loader').style.display = 'block';
     window.scrollTo(0,0);
 
     try {
-        const pdf = await pdfjsLib.getDocument(fileName).promise;
+        // We use a timestamp to force the browser to get the FRESH file
+        const freshFile = fileName + "?v=" + new Date().getTime();
+        const loadingTask = pdfjsLib.getDocument(freshFile);
+        window.currentPDFTask = loadingTask;
+        
+        const pdf = await loadingTask.promise;
+        
         for (let num = 1; num <= pdf.numPages; num++) {
             const page = await pdf.getPage(num);
             const viewport = page.getViewport({ scale: 1.5 });
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
+            
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             viewer.appendChild(canvas);
 
             await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-            // WATERMARK (Red, Subtle)
-            ctx.font = "bold 30px Arial";
-            ctx.fillStyle = "rgba(255, 0, 0, 0.12)"; 
-            ctx.textAlign = "center";
-            for (let x = 0; x < canvas.width; x += 300) {
-                for (let y = 0; y < canvas.height; y += 250) {
-                    ctx.save();
-                    ctx.translate(x + 150, y + 125);
-                    ctx.rotate(-Math.PI / 4);
-                    ctx.fillText("ID: " + deviceID, 0, 0);
-                    ctx.restore();
-                }
-            }
+            // Watermark Logic
+            drawWatermark(ctx, canvas.width, canvas.height);
+            
             document.getElementById('current-load').innerText = `${num}/${pdf.numPages}`;
         }
-    } catch (e) { 
-        console.error("PDF Error: ", e);
-        alert("Could not load " + fileName + ". Check your internet.");
+    } catch (e) {
+        alert("Error loading: " + fileName + ". Please refresh.");
     }
     document.getElementById('page-loader').style.display = 'none';
 }
 
-// --- 6. APP STARTUP FIX (Ensures match on Restart) ---
 function showBook() {
     document.getElementById('lock-screen').style.display = 'none';
     document.getElementById('pdf-main-container').style.display = 'block';
     
-    // This forces the dropdown to show the first item "1. Set Concepts"
+    // FORCE SYNC: Set the dropdown to the first item and load that specific file
     const selector = document.getElementById('topic-selector');
     selector.selectedIndex = 0; 
+    const firstFile = selector.options[0].value; // This will be topic6.pdf
     
-    // This forces the file to be topic6.pdf (Set Concepts)
-    loadTopic('topic6.pdf'); 
+    loadTopic(firstFile); 
 }
 
-function sendWA(num) { window.location.href = `https://wa.me/${num}?text=ID:${deviceID}`; }
-
-// Auto-run if already unlocked
-if (localStorage.getItem('unlocked') === 'true') { showBook(); }
-
-// SCREEN PROTECTION
-window.onblur = () => { document.body.style.filter = "blur(30px)"; }
-window.onfocus = () => { document.body.style.filter = "none"; }
-  </script>
+function drawWatermark(ctx, width, height) {
+    ctx.font = "bold 30px Arial";
+    ctx.fillStyle = "rgba(255, 0, 0, 0.12)"; 
+    ctx.textAlign = "center";
+    for (let x = 0; x < width; x += 300) {
+        for (let y = 0; y < height; y += 250) {
+            ctx.save();
+            ctx.translate(x + 150, y + 125);
+            ctx.rotate(-Math.PI / 4);
+            ctx.fillText("ID: " + deviceID, 0, 0);
+            ctx.restore();
+        }
+    }
+}  </script>
 </body>
 </html>
