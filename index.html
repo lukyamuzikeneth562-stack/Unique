@@ -74,7 +74,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script>
 
-// --- 1. THE MATH LOGIC ---
+// --- 1. UNTRACEABLE MATH LOGIC ---
 function calculateComplexCode(id) {
     const mathMagic = Math.abs(Math.sin(id) * 10000000);
     const scramble = (id * 157) + 997;
@@ -87,7 +87,7 @@ const screenDim = window.screen.width * window.screen.height;
 const deviceID = Math.floor(screenDim / 3) + window.navigator.userAgent.length;
 document.getElementById('device-id').innerText = deviceID;
 
-// --- 3. UNLOCK SYSTEM ---
+// --- 3. ACCESS CONTROL ---
 function checkCode() {
     const input = document.getElementById('user-key').value;
     if (input === calculateComplexCode(deviceID)) {
@@ -115,8 +115,10 @@ const pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
 async function loadTopic(fileName) {
+    // This stops the app from "stacking" different topics on top of each other
     const viewer = document.getElementById('pdf-viewer');
     viewer.innerHTML = ''; 
+    
     document.getElementById('page-loader').style.display = 'block';
     window.scrollTo(0,0);
 
@@ -133,7 +135,7 @@ async function loadTopic(fileName) {
 
             await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-            // WATERMARK
+            // WATERMARK (Red, Subtle)
             ctx.font = "bold 30px Arial";
             ctx.fillStyle = "rgba(255, 0, 0, 0.12)"; 
             ctx.textAlign = "center";
@@ -148,31 +150,34 @@ async function loadTopic(fileName) {
             }
             document.getElementById('current-load').innerText = `${num}/${pdf.numPages}`;
         }
-    } catch (e) { console.error("PDF Load Error"); }
+    } catch (e) { 
+        console.error("PDF Error: ", e);
+        alert("Could not load " + fileName + ". Check your internet.");
+    }
     document.getElementById('page-loader').style.display = 'none';
 }
 
-// --- 6. APP STARTUP FIX ---
+// --- 6. APP STARTUP FIX (Ensures match on Restart) ---
 function showBook() {
     document.getElementById('lock-screen').style.display = 'none';
     document.getElementById('pdf-main-container').style.display = 'block';
     
-    // Reset the dropdown visually to the first item (Set Concepts)
+    // This forces the dropdown to show the first item "1. Set Concepts"
     const selector = document.getElementById('topic-selector');
-    if(selector) selector.selectedIndex = 0; 
+    selector.selectedIndex = 0; 
     
-    // Load the file corresponding to Set Concepts
+    // This forces the file to be topic6.pdf (Set Concepts)
     loadTopic('topic6.pdf'); 
 }
 
 function sendWA(num) { window.location.href = `https://wa.me/${num}?text=ID:${deviceID}`; }
 
+// Auto-run if already unlocked
 if (localStorage.getItem('unlocked') === 'true') { showBook(); }
 
 // SCREEN PROTECTION
 window.onblur = () => { document.body.style.filter = "blur(30px)"; }
 window.onfocus = () => { document.body.style.filter = "none"; }
-        
   </script>
 </body>
 </html>
