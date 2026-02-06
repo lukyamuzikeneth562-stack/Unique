@@ -75,9 +75,9 @@
 
     <script>
 
-        // --- 1. UNTRACEABLE SINE-WAVE MATH ---
+     // --- 1. UNTRACEABLE MATH LOGIC ---
 function calculateComplexCode(id) {
-    // Non-linear scrambler: Impossible for humans to find the pattern
+    // Non-linear sine-wave scrambler: Pattern cannot be guessed by humans
     const mathMagic = Math.abs(Math.sin(id) * 10000000);
     const scramble = (id * 157) + 997;
     const final = Math.floor(mathMagic + scramble) % 100000000;
@@ -85,7 +85,6 @@ function calculateComplexCode(id) {
 }
 
 // --- 2. UNIQUE DEVICE IDENTIFICATION ---
-// Based on screen specs and browser footprint
 const screenDim = window.screen.width * window.screen.height;
 const deviceID = Math.floor(screenDim / 3) + window.navigator.userAgent.length;
 document.getElementById('device-id').innerText = deviceID;
@@ -102,7 +101,7 @@ function checkCode() {
 }
 
 // --- 4. HIDDEN ADMIN GENERATOR ---
-// TRIGGER: Tap the "🔒 Book Locked" text 10 times quickly
+// Tap the "🔒 Book Locked" text 10 times quickly to open
 let clicks = 0;
 function secretAdmin() {
     clicks++;
@@ -114,7 +113,7 @@ function secretAdmin() {
         } else { 
             alert("Unauthorized Access."); 
         }
-        clicks = 0; // Reset
+        clicks = 0;
     }
 }
 
@@ -124,7 +123,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 
 async function loadTopic(fileName) {
     const viewer = document.getElementById('pdf-viewer');
-    viewer.innerHTML = ''; // Clear current topic
+    viewer.innerHTML = ''; 
     document.getElementById('page-loader').style.display = 'block';
     window.scrollTo(0,0);
 
@@ -141,17 +140,16 @@ async function loadTopic(fileName) {
 
             await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-            // --- REDUCED INTENSITY WATERMARK ---
+            // --- LOW INTENSITY WATERMARK ---
             ctx.font = "bold 30px Arial";
-            ctx.fillStyle = "rgba(255, 0, 0, 0.12)"; // Very light red (12% opacity)
+            ctx.fillStyle = "rgba(255, 0, 0, 0.12)"; // Subtle red at 12% opacity
             ctx.textAlign = "center";
             
-            // Grid spacing: repeats ID every 300px horizontally and 250px vertically
             for (let x = 0; x < canvas.width; x += 300) {
                 for (let y = 0; y < canvas.height; y += 250) {
                     ctx.save();
                     ctx.translate(x + 150, y + 125);
-                    ctx.rotate(-Math.PI / 4); // 45 degree tilt
+                    ctx.rotate(-Math.PI / 4);
                     ctx.fillText("ID: " + deviceID, 0, 0);
                     ctx.restore();
                 }
@@ -159,7 +157,7 @@ async function loadTopic(fileName) {
             document.getElementById('current-load').innerText = `${num}/${pdf.numPages}`;
         }
     } catch (e) { 
-        alert("File not found or internet connection failed."); 
+        alert("File error. Ensure your PDFs are named correctly in your folder."); 
     }
     document.getElementById('page-loader').style.display = 'none';
 }
@@ -168,21 +166,20 @@ async function loadTopic(fileName) {
 function showBook() {
     document.getElementById('lock-screen').style.display = 'none';
     document.getElementById('pdf-main-container').style.display = 'block';
-    // Automatically load Topic 1 (Operations on whole numbers)
-    loadTopic('topic1.pdf'); 
+    
+    // Per your mapping: 1. Set Concepts is stored as topic6.pdf
+    loadTopic('topic6.pdf'); 
 }
 
 function sendWA(num) { 
     window.location.href = `https://wa.me/${num}?text=Hello, I want to unlock the Maths Book. My ID is: ${deviceID}`; 
 }
 
-// Auto-unlock if user has already paid and unlocked before
 if (localStorage.getItem('unlocked') === 'true') { 
     showBook(); 
 }
 
 // --- 7. MOBILE SCREEN PROTECTION ---
-// Blurs the content if user switches apps or takes a screenshot (on supported mobile browsers)
 window.onblur = () => { document.body.style.filter = "blur(30px)"; }
 window.onfocus = () => { document.body.style.filter = "none"; }
     </script>
