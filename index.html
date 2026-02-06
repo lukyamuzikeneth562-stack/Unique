@@ -74,28 +74,72 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script>
 
+// --- 1. CORE MATH & ID GENERATION (Runs Instantly) ---
+const screenDim = window.screen.width * window.screen.height;
+const deviceID = Math.floor(screenDim / 3) + window.navigator.userAgent.length;
+
+// Display the ID immediately so the user can send it
+document.addEventListener("DOMContentLoaded", () => {
+    const idElement = document.getElementById('device-id');
+    if(idElement) idElement.innerText = deviceID;
+});
+
+function calculateComplexCode(id) {
+    const mathMagic = Math.abs(Math.sin(id) * 10000000);
+    const scramble = (id * 157) + 997;
+    const final = Math.floor(mathMagic + scramble) % 100000000;
+    return final.toString().padStart(8, '0');
+}
+
+// --- 2. BUTTON FUNCTIONS (MTN / AIRTEL) ---
+function sendWA(num) { 
+    const message = encodeURIComponent("Hello Benjamin, I want to unlock the Maths Book. My ID is: " + deviceID);
+    window.location.href = "https://wa.me/" + num + "?text=" + message; 
+}
+
+// --- 3. ACCESS CONTROL ---
+function checkCode() {
+    const input = document.getElementById('user-key').value.trim();
+    if (input === calculateComplexCode(deviceID)) {
+        localStorage.setItem('unlocked', 'true');
+        showBook();
+    } else { 
+        alert("Invalid Code. Please check the number and try again."); 
+    }
+}
+
+// --- 4. ADMIN TOOL (10 Taps on "Book Locked") ---
+let clicks = 0;
+function secretAdmin() {
+    clicks++;
+    if (clicks === 10) {
+        const pass = prompt("ADMIN PASSWORD:");
+        if (pass === "1962") {
+            const sid = prompt("Enter Student ID to generate code:");
+            if(sid) alert("Unlock Code for " + sid + ":\n\n" + calculateComplexCode(sid));
+        }
+        clicks = 0;
+    }
+}
+
+// --- 5. PDF ENGINE & MAPPING ---
+const pdfjsLib = window['pdfjs-dist/build/pdf'];
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+let currentRenderTask = null;
+
 async function loadTopic(fileName) {
     if (!fileName) return;
-
     const viewer = document.getElementById('pdf-viewer');
-    
-    // FORCE CLEAR: This stops the 'interchanging' bug
     viewer.innerHTML = ''; 
     
-    // Stop any existing PDF tasks
-    if (window.currentPDFTask) {
-        await window.currentPDFTask.destroy();
-    }
+    if (currentRenderTask) { currentRenderTask.destroy(); }
 
     document.getElementById('page-loader').style.display = 'block';
-    window.scrollTo(0,0);
-
+    
     try {
-        // We use a timestamp to force the browser to get the FRESH file
-        const freshFile = fileName + "?v=" + new Date().getTime();
-        const loadingTask = pdfjsLib.getDocument(freshFile);
-        window.currentPDFTask = loadingTask;
-        
+        const loadingTask = pdfjsLib.getDocument(fileName);
+        currentRenderTask = loadingTask;
         const pdf = await loadingTask.promise;
         
         for (let num = 1; num <= pdf.numPages; num++) {
@@ -103,49 +147,52 @@ async function loadTopic(fileName) {
             const viewport = page.getViewport({ scale: 1.5 });
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             viewer.appendChild(canvas);
 
             await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-            // Watermark Logic
-            drawWatermark(ctx, canvas.width, canvas.height);
-            
-            document.getElementById('current-load').innerText = `${num}/${pdf.numPages}`;
+            // Subtle Watermark
+            ctx.font = "bold 30px Arial";
+            ctx.fillStyle = "rgba(255, 0, 0, 0.12)"; 
+            ctx.textAlign = "center";
+            for (let x = 0; x < canvas.width; x += 300) {
+                for (let y = 0; y < canvas.height; y += 250) {
+                    ctx.save();
+                    ctx.translate(x + 150, y + 125);
+                    ctx.rotate(-Math.PI / 4);
+                    ctx.fillText("ID: " + deviceID, 0, 0);
+                    ctx.restore();
+                }
+            }
+            document.getElementById('current-load').innerText = num + "/" + pdf.numPages;
         }
-    } catch (e) {
-        alert("Error loading: " + fileName + ". Please refresh.");
-    }
+    } catch (e) { console.error(e); }
     document.getElementById('page-loader').style.display = 'none';
 }
 
+// --- 6. INITIALIZATION ---
 function showBook() {
     document.getElementById('lock-screen').style.display = 'none';
     document.getElementById('pdf-main-container').style.display = 'block';
     
-    // FORCE SYNC: Set the dropdown to the first item and load that specific file
     const selector = document.getElementById('topic-selector');
-    selector.selectedIndex = 0; 
-    const firstFile = selector.options[0].value; // This will be topic6.pdf
+    if(selector) selector.selectedIndex = 0;
     
-    loadTopic(firstFile); 
+    // Specifically load Set Concepts (topic6.pdf)
+    loadTopic('topic6.pdf');
 }
 
-function drawWatermark(ctx, width, height) {
-    ctx.font = "bold 30px Arial";
-    ctx.fillStyle = "rgba(255, 0, 0, 0.12)"; 
-    ctx.textAlign = "center";
-    for (let x = 0; x < width; x += 300) {
-        for (let y = 0; y < height; y += 250) {
-            ctx.save();
-            ctx.translate(x + 150, y + 125);
-            ctx.rotate(-Math.PI / 4);
-            ctx.fillText("ID: " + deviceID, 0, 0);
-            ctx.restore();
-        }
-    }
-}  </script>
+// Auto-unlock if previously successful
+if (localStorage.getItem('unlocked') === 'true') {
+    // Small delay to ensure HTML is ready
+    setTimeout(showBook, 500);
+}
+
+// BLUR PROTECTION
+window.onblur = () => { document.body.style.filter = "blur(30px)"; }
+window.onfocus = () => { document.body.style.filter = "none"; } 
+    </script>
 </body>
 </html>
