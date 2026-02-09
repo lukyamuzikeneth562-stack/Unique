@@ -6,64 +6,70 @@
     <title>Primary Maths Digital Textbook</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #121212; color: white; margin: 0; padding-bottom: 60px; /* Space for static footer */ }
+        body { font-family: Arial, sans-serif; background: #121212; color: white; margin: 0; padding-bottom: 70px; overflow-x: hidden; }
         
-        #lock-screen { text-align: center; padding: 50px 20px; }
+        #lock-screen { text-align: center; padding: 40px 20px; }
         #pdf-main-container { display: none; width: 100%; }
         
         #topic-header {
             position: sticky; top: 0; background: #1e1e1e;
             padding: 15px; z-index: 1000; border-bottom: 2px solid #333;
-            display: flex; justify-content: center; align-items: center;
+            display: flex; justify-content: center;
         }
 
         #topic-selector {
             width: 90%; max-width: 500px; padding: 12px;
             border-radius: 10px; background: #2c2c2c; color: white;
             font-size: 1rem; border: 1px solid #555;
-            text-align: center;
         }
 
-        .btn { padding: 15px; margin: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .btn { padding: 15px; margin: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 80%; max-width: 300px; }
         .mtn { background: #ffcc00; color: black; }
         .airtel { background: #ff0000; color: white; }
         
-        /* Centering the PDF work perfectly */
         #pdf-viewer { 
             display: flex; flex-direction: column; align-items: center; 
-            width: 100%; margin: 0 auto; 
+            width: 100%; margin: 0 auto; padding: 0;
         }
         #pdf-viewer canvas { 
             max-width: 100%; height: auto !important; 
-            margin: 10px 0; box-shadow: 0 0 15px rgba(0,0,0,0.5); 
+            margin: 5px 0; background: white;
         }
         
         #page-loader { 
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,255,0,0.2); color: #00ff00; padding: 8px 15px; 
-            border-radius: 20px; display: none; z-index: 2000; font-weight: bold;
+            position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: #4CAF50; padding: 10px 20px; 
+            border-radius: 25px; display: none; z-index: 2000; font-size: 0.9rem;
         }
 
-        /* STATIC BOTTOM FOOTER */
         .static-footer {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: #1a1a1a; color: #bbb; text-align: center;
-            padding: 12px 0; font-size: 0.8rem; border-top: 1px solid #333;
-            z-index: 3000; display: flex; justify-content: center; align-items: center;
-            gap: 5px;
+            padding: 15px 0; font-size: 0.8rem; border-top: 1px solid #333;
+            z-index: 3000; display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
         }
-        .wa-icon { width: 16px; height: 16px; vertical-align: middle; }
+        .wa-icon { width: 18px; height: 18px; margin: 0 5px; vertical-align: middle; }
+        
+        .instruction-box { background: #222; border: 1px dashed #555; padding: 15px; margin: 20px auto; width: 90%; max-width: 400px; border-radius: 10px; }
     </style>
 </head>
 <body>
 
 <div id="lock-screen">
     <h2 id="admin-trigger">🔒 Book Locked</h2>
-    <p>Your Device ID: <strong id="device-id">...</strong></p>
-    <button class="btn mtn" onclick="sendWA('256770000000')">Message via MTN</button>
-    <button class="btn airtel" onclick="sendWA('256700000000')">Message via Airtel</button>
+    
+    <div class="instruction-box">
+        <p style="color:#ffcc00; font-weight:bold; margin-top:0;">HOW TO UNLOCK:</p>
+        <p>Message the author with the ID below to receive your unlock code.</p>
+        <p>Device ID: <strong id="device-id" style="color:#00ff00; font-size:1.2rem;">...</strong></p>
+    </div>
+
+    <button class="btn mtn" onclick="sendWA('256785600165')">Message Author (MTN)</button>
+    <button class="btn airtel" onclick="sendWA('256703078891')">Message Author (Airtel)</button>
+    
     <br><br>
-    <input type="text" id="user-key" placeholder="Enter Unlock Code" style="padding: 12px; width: 200px; border-radius: 5px; border: 1px solid #444; background: #000; color: white;">
+    <input type="text" id="user-key" placeholder="Enter Unlock Code" style="padding: 15px; width: 250px; border-radius: 8px; border: 1px solid #444; background: #000; color: white; text-align:center; font-size:1.1rem;">
+    <br>
     <button class="btn" style="background: #4CAF50; color: white;" onclick="checkCode()">Unlock Now</button>
 </div>
 
@@ -85,7 +91,7 @@
         </select>
     </div>
     <div id="pdf-viewer"></div>
-    <div id="page-loader">Loading: <span id="current-load">0/0</span></div>
+    <div id="page-loader">Rendering: <span id="current-load">0/0</span></div>
 </div>
 
 <div class="static-footer">
@@ -95,6 +101,7 @@
 </div>
 
 <script>
+// --- CORE LOGIC ---
 const screenDim = window.screen.width * window.screen.height;
 const deviceID = Math.floor(screenDim / 3) + window.navigator.userAgent.length;
 document.getElementById('device-id').innerText = deviceID;
@@ -106,6 +113,7 @@ function calculateComplexCode(id) {
     return final.toString().padStart(8, '0');
 }
 
+// --- ADMIN (20 TAPS) ---
 let clicks = 0;
 document.getElementById('admin-trigger').onclick = function() {
     clicks++;
@@ -120,7 +128,8 @@ document.getElementById('admin-trigger').onclick = function() {
 };
 
 function sendWA(num) { 
-    window.location.href = `https://wa.me/${num}?text=Hello, ID:${deviceID}`;
+    const msg = encodeURIComponent("Hello, I want to unlock the book. My ID is: " + deviceID);
+    window.location.href = `https://wa.me/${num}?text=${msg}`;
 }
 
 function checkCode() {
@@ -131,53 +140,49 @@ function checkCode() {
     } else { alert("Incorrect Code."); }
 }
 
+// --- FAST PDF ENGINE ---
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-let currentLoadingTask = null;
+let currentTask = null;
 
 async function loadTopic(fileName) {
     const viewer = document.getElementById('pdf-viewer');
     
-    // 1. Cancel any previous loading task to prevent interchanging/errors
-    if (currentLoadingTask) {
-        await currentLoadingTask.destroy();
-    }
-
+    if (currentTask) { await currentTask.destroy(); }
     viewer.innerHTML = '';
     document.getElementById('page-loader').style.display = 'block';
     window.scrollTo(0,0);
 
     try {
-        currentLoadingTask = pdfjsLib.getDocument(fileName);
-        const pdf = await currentLoadingTask.promise;
+        const loadingTask = pdfjsLib.getDocument(fileName);
+        currentTask = loadingTask;
+        const pdf = await loadingTask.promise;
         
         for (let n = 1; n <= pdf.numPages; n++) {
             const page = await pdf.getPage(n);
-            const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for clarity
+            const viewport = page.getViewport({ scale: 1.5 });
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             viewer.appendChild(canvas);
 
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-
-            // Watermark
-            ctx.font = "bold 40px Arial";
-            ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
-            ctx.textAlign = "center";
-            for (let x = 0; x < canvas.width; x += 400) {
-                for (let y = 0; y < canvas.height; y += 350) {
-                    ctx.save(); ctx.translate(x+200, y+175); ctx.rotate(-Math.PI/4);
-                    ctx.fillText("ID: " + deviceID, 0, 0); ctx.restore();
+            // Render page (Fast mode: we don't 'await' every single page before showing the canvas)
+            page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
+                // Apply Watermark after render
+                ctx.font = "bold 35px Arial";
+                ctx.fillStyle = "rgba(255, 0, 0, 0.12)";
+                ctx.textAlign = "center";
+                for (let x = 0; x < canvas.width; x += 350) {
+                    for (let y = 0; y < canvas.height; y += 300) {
+                        ctx.save(); ctx.translate(x+175, y+150); ctx.rotate(-Math.PI/4);
+                        ctx.fillText("ID: " + deviceID, 0, 0); ctx.restore();
+                    }
                 }
-            }
+            });
             document.getElementById('current-load').innerText = n + "/" + pdf.numPages;
         }
-    } catch (e) {
-        console.error(e);
-        // Error only shows if the file is truly missing
-    }
+    } catch (e) { console.error(e); }
     document.getElementById('page-loader').style.display = 'none';
 }
 
