@@ -8,7 +8,7 @@
     <style>
         body { font-family: Arial, sans-serif; background: #121212; color: white; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
         #lock-screen { text-align: center; padding: 50px 20px; flex: 1; }
-        #pdf-main-container { display: none; flex: 1; }
+        #pdf-main-container { display: none; flex: 1; width: 100%; }
         
         #topic-header {
             position: sticky; top: 0; background: #1e1e1e;
@@ -26,31 +26,29 @@
         .mtn { background: #ffcc00; color: black; }
         .airtel { background: #ff0000; color: white; }
         
-        #pdf-viewer canvas { width: 100%; height: auto; display: block; margin-bottom: 10px; }
-        #page-loader { position: fixed; bottom: 80px; right: 20px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; display: none; z-index: 2000; }
+        /* FIX: Ensure the viewer is visible and takes up space */
+        #pdf-viewer { width: 100%; min-height: 500px; background: #121212; }
+        #pdf-viewer canvas { width: 100% !important; height: auto !important; display: block; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        
+        #page-loader { position: fixed; bottom: 80px; right: 20px; background: rgba(0,0,0,0.9); color: #00ff00; padding: 10px; border-radius: 5px; display: none; z-index: 2000; font-family: monospace; border: 1px solid #00ff00; }
 
-        /* FOOTER STYLING */
         footer {
-            background: #1a1a1a;
-            color: #888;
-            text-align: center;
-            padding: 15px;
-            font-size: 0.85rem;
-            border-top: 1px solid #333;
-            width: 100%;
+            background: #1a1a1a; color: #888; text-align: center;
+            padding: 15px; font-size: 0.85rem; border-top: 1px solid #333;
+            width: 100%; position: relative; z-index: 10;
         }
     </style>
 </head>
 <body>
 
 <div id="lock-screen">
-    <h2 onclick="secretAdmin()">🔒 Book Locked</h2>
-    <p>Your Device ID: <strong id="device-id">Loading...</strong></p>
+    <h2 id="admin-trigger" style="cursor:pointer; user-select:none;">🔒 Book Locked</h2>
+    <p>Your Device ID: <strong id="device-id">Generating...</strong></p>
     <p>Send this ID to Benjamin to get your Unlock Code:</p>
     <button class="btn mtn" onclick="sendWA('256770000000')">Message via MTN</button>
     <button class="btn airtel" onclick="sendWA('256700000000')">Message via Airtel</button>
     <br><br>
-    <input type="text" id="user-key" placeholder="Enter Unlock Code" style="padding: 10px; width: 200px; border-radius: 5px; border: none;">
+    <input type="text" id="user-key" placeholder="Enter Unlock Code" style="padding: 12px; width: 220px; border-radius: 5px; border: 1px solid #444; background: #000; color: #fff;">
     <button class="btn" style="background: #4CAF50; color: white;" onclick="checkCode()">Unlock Now</button>
 </div>
 
@@ -72,7 +70,7 @@
         </select>
     </div>
     <div id="pdf-viewer"></div>
-    <div id="page-loader">Loading: <span id="current-load">0/0</span></div>
+    <div id="page-loader">Rendering: <span id="current-load">0/0</span></div>
 </div>
 
 <footer>
@@ -80,7 +78,7 @@
 </footer>
 
 <script>
-// --- 1. DEVICE ID & MATH LOGIC ---
+// --- 1. SECURITY & ID ---
 const screenDim = window.screen.width * window.screen.height;
 const deviceID = Math.floor(screenDim / 3) + window.navigator.userAgent.length;
 document.getElementById('device-id').innerText = deviceID;
@@ -92,7 +90,21 @@ function calculateComplexCode(id) {
     return final.toString().padStart(8, '0');
 }
 
-// --- 2. BUTTON ACTIONS ---
+// --- 2. ADMIN SETUP (20 TAPS) ---
+let clicks = 0;
+document.getElementById('admin-trigger').onclick = function() {
+    clicks++;
+    if (clicks === 20) {
+        const pass = prompt("ADMIN ACCESS:");
+        if (pass === "19622003") {
+            const sid = prompt("Enter Student ID:");
+            if(sid) alert("Unlock Code: " + calculateComplexCode(sid));
+        }
+        clicks = 0;
+    }
+};
+
+// --- 3. COMMUNICATION ---
 function sendWA(num) { 
     const msg = encodeURIComponent("Hello, my ID is: " + deviceID);
     window.location.href = `https://wa.me/${num}?text=${msg}`;
@@ -106,45 +118,40 @@ function checkCode() {
     } else { alert("Incorrect Code."); }
 }
 
-// --- 3. UPDATED ADMIN TOOL (20 Taps & New Password) ---
-let clicks = 0;
-function secretAdmin() {
-    clicks++;
-    if (clicks === 20) { // Increased to 20 taps
-        const pass = prompt("ADMIN ACCESS:");
-        if (pass === "19622003") { // Updated Password
-            const sid = prompt("Enter Student ID:");
-            if(sid) alert("Generated Code: " + calculateComplexCode(sid));
-        }
-        clicks = 0;
-    }
-}
-
-// --- 4. PDF ENGINE ---
+// --- 4. PDF RENDERING ENGINE ---
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 let currentTask = null;
 
 async function loadTopic(fileName) {
     const viewer = document.getElementById('pdf-viewer');
-    viewer.innerHTML = '';
-    if (currentTask) currentTask.destroy();
+    viewer.innerHTML = ''; // Clear old content
+    if (currentTask) {
+        try { await currentTask.destroy(); } catch(e) {}
+    }
+    
     document.getElementById('page-loader').style.display = 'block';
+    window.scrollTo(0,0);
 
     try {
         const loadingTask = pdfjsLib.getDocument(fileName);
         currentTask = loadingTask;
         const pdf = await loadingTask.promise;
+        
         for (let n = 1; n <= pdf.numPages; n++) {
             const page = await pdf.getPage(n);
-            const viewport = page.getPageViewport({ scale: 1.5 });
+            const viewport = page.getViewport({ scale: 1.5 });
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.height = viewport.height; canvas.width = viewport.width;
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
             viewer.appendChild(canvas);
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-            // WATERMARK (Low Intensity)
+            const renderContext = { canvasContext: ctx, viewport: viewport };
+            await page.render(renderContext).promise;
+
+            // WATERMARK
             ctx.font = "bold 30px Arial";
             ctx.fillStyle = "rgba(255, 0, 0, 0.12)";
             ctx.textAlign = "center";
@@ -156,7 +163,10 @@ async function loadTopic(fileName) {
             }
             document.getElementById('current-load').innerText = n + "/" + pdf.numPages;
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error("PDF Display Error:", e);
+        viewer.innerHTML = "<p style='padding:20px;'>Error displaying work. Please ensure " + fileName + " exists in your folder.</p>";
+    }
     document.getElementById('page-loader').style.display = 'none';
 }
 
@@ -168,13 +178,14 @@ function showBook() {
     loadTopic('topic6.pdf');
 }
 
-if (localStorage.getItem('unlocked') === 'true') { showBook(); }
+// Auto-run on load
+window.onload = () => {
+    if (localStorage.getItem('unlocked') === 'true') { showBook(); }
+};
 
-// --- 5. SERVICE WORKER ---
+// OFFLINE SW REGISTRATION
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js');
-    });
+    navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
 }
 </script>
 </body>
