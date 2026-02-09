@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Primary Maths Digital Textbook</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
@@ -23,7 +23,7 @@
             font-size: 1rem; border: 1px solid #555;
         }
 
-        .btn { padding: 15px; margin: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 85%; max-width: 320px; }
+        .btn { padding: 15px; margin: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 80%; max-width: 300px; }
         .mtn { background: #ffcc00; color: black; }
         .airtel { background: #ff0000; color: white; }
         
@@ -34,35 +34,34 @@
         #pdf-viewer canvas { 
             max-width: 100%; height: auto !important; 
             margin: 5px 0; background: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
         
         #page-loader { 
             position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.85); color: #4CAF50; padding: 10px 20px; 
-            border-radius: 25px; display: none; z-index: 2000; font-size: 0.9rem; border: 1px solid #4CAF50;
+            background: rgba(0,0,0,0.8); color: #4CAF50; padding: 10px 20px; 
+            border-radius: 25px; display: none; z-index: 2000; font-size: 0.9rem;
         }
 
         .static-footer {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: #1a1a1a; color: #bbb; text-align: center;
             padding: 15px 0; font-size: 0.8rem; border-top: 1px solid #333;
-            z-index: 3000; display: flex; justify-content: center; align-items: center;
+            z-index: 3000; display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
         }
-        .wa-icon { width: 18px; height: 18px; margin: 0 8px; vertical-align: middle; }
+        .wa-icon { width: 18px; height: 18px; margin: 0 5px; vertical-align: middle; }
         
-        .instruction-box { background: #1e1e1e; border: 1px solid #333; padding: 20px; margin: 20px auto; width: 85%; max-width: 400px; border-radius: 12px; }
+        .instruction-box { background: #222; border: 1px dashed #555; padding: 15px; margin: 20px auto; width: 90%; max-width: 400px; border-radius: 10px; }
     </style>
 </head>
 <body>
 
 <div id="lock-screen">
-    <h2 id="admin-trigger" style="user-select: none;">🔒 Book Locked</h2>
+    <h2 id="admin-trigger">🔒 Book Locked</h2>
     
     <div class="instruction-box">
-        <p style="color:#ffcc00; font-weight:bold; margin-top:0;">TO UNLOCK THE BOOK:</p>
-        <p>Message the author with the Device ID below to get your unlock code.</p>
-        <p>Device ID: <strong id="device-id" style="color:#00ff00; font-size:1.3rem;">...</strong></p>
+        <p style="color:#ffcc00; font-weight:bold; margin-top:0;">HOW TO UNLOCK:</p>
+        <p>Message the author with the ID below to receive your unlock code.</p>
+        <p>Device ID: <strong id="device-id" style="color:#00ff00; font-size:1.2rem;">...</strong></p>
     </div>
 
     <button class="btn mtn" onclick="sendWA('256785600165')">Message Author (MTN)</button>
@@ -119,17 +118,17 @@ let clicks = 0;
 document.getElementById('admin-trigger').onclick = function() {
     clicks++;
     if (clicks === 20) {
-        const pass = prompt("ADMIN PASSWORD:");
+        const pass = prompt("ADMIN ACCESS:");
         if (pass === "19622003") {
             const sid = prompt("Enter Student ID:");
-            if(sid) alert("Unlock Code for " + sid + ":\n\n" + calculateComplexCode(sid));
+            if(sid) alert("Unlock Code: " + calculateComplexCode(sid));
         }
         clicks = 0;
     }
 };
 
 function sendWA(num) { 
-    const msg = encodeURIComponent("Hello Benjamin, I want to unlock the Maths Book. My ID is: " + deviceID);
+    const msg = encodeURIComponent("Hello, I want to unlock the book. My ID is: " + deviceID);
     window.location.href = `https://wa.me/${num}?text=${msg}`;
 }
 
@@ -138,7 +137,7 @@ function checkCode() {
     if (input === calculateComplexCode(deviceID)) {
         localStorage.setItem('unlocked', 'true');
         showBook();
-    } else { alert("Incorrect Code. Please try again."); }
+    } else { alert("Incorrect Code."); }
 }
 
 // --- FAST PDF ENGINE ---
@@ -149,10 +148,7 @@ let currentTask = null;
 async function loadTopic(fileName) {
     const viewer = document.getElementById('pdf-viewer');
     
-    if (currentTask) { 
-        try { await currentTask.destroy(); } catch(e) {}
-    }
-    
+    if (currentTask) { await currentTask.destroy(); }
     viewer.innerHTML = '';
     document.getElementById('page-loader').style.display = 'block';
     window.scrollTo(0,0);
@@ -171,9 +167,9 @@ async function loadTopic(fileName) {
             canvas.width = viewport.width;
             viewer.appendChild(canvas);
 
-            // Fast Rendering Loop
+            // Render page (Fast mode: we don't 'await' every single page before showing the canvas)
             page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
-                // Apply Watermark
+                // Apply Watermark after render
                 ctx.font = "bold 35px Arial";
                 ctx.fillStyle = "rgba(255, 0, 0, 0.12)";
                 ctx.textAlign = "center";
@@ -186,9 +182,7 @@ async function loadTopic(fileName) {
             });
             document.getElementById('current-load').innerText = n + "/" + pdf.numPages;
         }
-    } catch (e) { 
-        console.error("Load Error:", e);
-    }
+    } catch (e) { console.error(e); }
     document.getElementById('page-loader').style.display = 'none';
 }
 
