@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Primary Maths Digital Textbook</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #121212; color: white; margin: 0; padding-bottom: 70px; overflow-x: hidden; }
+        body { font-family: Arial, sans-serif; background: #121212; color: white; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
         
+        /* Lock Screen Styling */
         #lock-screen { text-align: center; padding: 40px 20px; }
+        .instruction-box { background: #1e1e1e; border: 1px solid #333; padding: 20px; margin: 20px auto; width: 85%; max-width: 400px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        
         #pdf-main-container { display: none; width: 100%; }
         
         #topic-header {
@@ -23,49 +26,44 @@
             font-size: 1rem; border: 1px solid #555;
         }
 
-        .btn { padding: 15px; margin: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 80%; max-width: 300px; }
+        .btn { padding: 15px; margin: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 85%; max-width: 320px; transition: 0.3s; }
         .mtn { background: #ffcc00; color: black; }
         .airtel { background: #ff0000; color: white; }
+        .btn:active { transform: scale(0.98); }
         
-        #pdf-viewer { 
-            display: flex; flex-direction: column; align-items: center; 
-            width: 100%; margin: 0 auto; padding: 0;
-        }
-        #pdf-viewer canvas { 
-            max-width: 100%; height: auto !important; 
-            margin: 5px 0; background: white;
-        }
+        /* Centered Viewer */
+        #pdf-viewer { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 0; }
+        canvas { max-width: 100%; height: auto !important; margin: 5px 0; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
         
         #page-loader { 
-            position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); color: #4CAF50; padding: 10px 20px; 
-            border-radius: 25px; display: none; z-index: 2000; font-size: 0.9rem;
+            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); color: #4CAF50; padding: 10px 20px; 
+            border-radius: 25px; display: none; z-index: 2000; font-size: 0.9rem; border: 1px solid #4CAF50;
         }
 
+        /* Fixed Static Footer */
         .static-footer {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: #1a1a1a; color: #bbb; text-align: center;
             padding: 15px 0; font-size: 0.8rem; border-top: 1px solid #333;
-            z-index: 3000; display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
+            z-index: 3000; display: flex; justify-content: center; align-items: center;
         }
-        .wa-icon { width: 18px; height: 18px; margin: 0 5px; vertical-align: middle; }
-        
-        .instruction-box { background: #222; border: 1px dashed #555; padding: 15px; margin: 20px auto; width: 90%; max-width: 400px; border-radius: 10px; }
+        .wa-icon { width: 18px; height: 18px; margin: 0 8px; vertical-align: middle; }
     </style>
 </head>
 <body>
 
 <div id="lock-screen">
-    <h2 id="admin-trigger">🔒 Book Locked</h2>
+    <h2 id="admin-trigger" style="user-select: none;">🔒 Book Locked</h2>
     
     <div class="instruction-box">
-        <p style="color:#ffcc00; font-weight:bold; margin-top:0;">HOW TO UNLOCK:</p>
-        <p>Message the author with the ID below to receive your unlock code.</p>
-        <p>Device ID: <strong id="device-id" style="color:#00ff00; font-size:1.2rem;">...</strong></p>
+        <p style="color:#ffcc00; font-weight:bold; margin-top:0;">TO UNLOCK THE BOOK:</p>
+        <p>Message the author with the Device ID below to get your unlock code.</p>
+        <p>Device ID: <strong id="device-id" style="color:#00ff00; font-size:1.3rem;">...</strong></p>
     </div>
 
-    <button class="btn mtn" onclick="sendWA('256785600165')">Message Author (MTN)</button>
-    <button class="btn airtel" onclick="sendWA('256703078891')">Message Author (Airtel)</button>
+    <button class="btn mtn" onclick="sendWA('256785600165')">Message Author (0785600165)</button>
+    <button class="btn airtel" onclick="sendWA('256703078891')">Message Author (0703078891)</button>
     
     <br><br>
     <input type="text" id="user-key" placeholder="Enter Unlock Code" style="padding: 15px; width: 250px; border-radius: 8px; border: 1px solid #444; background: #000; color: white; text-align:center; font-size:1.1rem;">
@@ -91,7 +89,7 @@
         </select>
     </div>
     <div id="pdf-viewer"></div>
-    <div id="page-loader">Rendering: <span id="current-load">0/0</span></div>
+    <div id="page-loader">Loading pages... <span id="current-load">0/0</span></div>
 </div>
 
 <div class="static-footer">
@@ -118,7 +116,7 @@ let clicks = 0;
 document.getElementById('admin-trigger').onclick = function() {
     clicks++;
     if (clicks === 20) {
-        const pass = prompt("ADMIN ACCESS:");
+        const pass = prompt("ADMIN PASSWORD:");
         if (pass === "19622003") {
             const sid = prompt("Enter Student ID:");
             if(sid) alert("Unlock Code: " + calculateComplexCode(sid));
@@ -140,50 +138,57 @@ function checkCode() {
     } else { alert("Incorrect Code."); }
 }
 
-// --- FAST PDF ENGINE ---
+// --- OPTIMIZED PDF ENGINE ---
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 let currentTask = null;
 
 async function loadTopic(fileName) {
     const viewer = document.getElementById('pdf-viewer');
+    if (currentTask) { try { await currentTask.destroy(); } catch(e) {} }
     
-    if (currentTask) { await currentTask.destroy(); }
     viewer.innerHTML = '';
     document.getElementById('page-loader').style.display = 'block';
     window.scrollTo(0,0);
 
     try {
-        const loadingTask = pdfjsLib.getDocument(fileName);
+        const loadingTask = pdfjsLib.getDocument({
+            url: fileName,
+            disableAutoFetch: true, // Speeds up initial display
+            disableStream: false
+        });
         currentTask = loadingTask;
         const pdf = await loadingTask.promise;
         
         for (let n = 1; n <= pdf.numPages; n++) {
-            const page = await pdf.getPage(n);
-            const viewport = page.getViewport({ scale: 1.5 });
             const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
             viewer.appendChild(canvas);
-
-            // Render page (Fast mode: we don't 'await' every single page before showing the canvas)
-            page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
-                // Apply Watermark after render
-                ctx.font = "bold 35px Arial";
-                ctx.fillStyle = "rgba(255, 0, 0, 0.12)";
-                ctx.textAlign = "center";
-                for (let x = 0; x < canvas.width; x += 350) {
-                    for (let y = 0; y < canvas.height; y += 300) {
-                        ctx.save(); ctx.translate(x+175, y+150); ctx.rotate(-Math.PI/4);
-                        ctx.fillText("ID: " + deviceID, 0, 0); ctx.restore();
-                    }
-                }
-            });
+            renderPage(pdf, n, canvas); // Parallel rendering
             document.getElementById('current-load').innerText = n + "/" + pdf.numPages;
         }
-    } catch (e) { console.error(e); }
-    document.getElementById('page-loader').style.display = 'none';
+    } catch (e) { console.error("Load error", e); }
+    setTimeout(() => { document.getElementById('page-loader').style.display = 'none'; }, 2000);
+}
+
+async function renderPage(pdf, pageNum, canvas) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const ctx = canvas.getContext('2d');
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+    
+    // Add Watermark
+    ctx.font = "bold 35px Arial";
+    ctx.fillStyle = "rgba(255, 0, 0, 0.12)";
+    ctx.textAlign = "center";
+    for (let x = 0; x < canvas.width; x += 350) {
+        for (let y = 0; y < canvas.height; y += 300) {
+            ctx.save(); ctx.translate(x+175, y+150); ctx.rotate(-Math.PI/4);
+            ctx.fillText("ID: " + deviceID, 0, 0); ctx.restore();
+        }
+    }
 }
 
 function showBook() {
@@ -194,13 +199,9 @@ function showBook() {
     loadTopic('topic6.pdf');
 }
 
-window.onload = () => {
-    if (localStorage.getItem('unlocked') === 'true') { showBook(); }
-};
+window.onload = () => { if (localStorage.getItem('unlocked') === 'true') { showBook(); } };
 
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js');
-}
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
 </script>
 </body>
 </html>
