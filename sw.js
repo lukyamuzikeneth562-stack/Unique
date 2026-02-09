@@ -1,23 +1,32 @@
-const CACHE_NAME = 'maths-v5';
+const CACHE_NAME = 'maths-v7';
 const assets = [
   './',
   './index.html',
-  './topic1.pdf', './topic2.pdf', './topic3.pdf', './topic4.pdf',
-  './topic5.pdf', './topic6.pdf', './topic7.pdf', './topic8.pdf',
-  './topic9.pdf', './topic10.pdf', './topic11.pdf', './topic12.pdf',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js'
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(assets)));
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(assets))
+  );
 });
 
-// Cache-First Strategy for Instant Loading
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
-      return cachedResponse || fetch(event.request);
+      // IF THE FILE IS IN CACHE (Phone Memory), RETURN IT INSTANTLY (0 Data Used)
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      // IF NOT IN CACHE, DOWNLOAD IT AND SAVE IT FOR NEXT TIME
+      return fetch(event.request).then(networkResponse => {
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+      });
     })
   );
 });
