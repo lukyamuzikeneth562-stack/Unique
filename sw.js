@@ -1,4 +1,4 @@
-const CACHE_NAME = 'maths-v4';
+const CACHE_NAME = 'maths-v5';
 const assets = [
   './',
   './index.html',
@@ -10,16 +10,14 @@ const assets = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('Caching all work for offline use...');
-      return cache.addAll(assets);
-    })
-  );
+  e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(assets)));
 });
 
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(res => res || fetch(e.request))
+// Cache-First Strategy for Instant Loading
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      return cachedResponse || fetch(event.request);
+    })
   );
 });
