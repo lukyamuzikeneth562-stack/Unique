@@ -16,9 +16,8 @@
         .mtn { background: #ffcc00; color: black; }
         .airtel { background: #ff0000; color: white; }
         #pdf-viewer { display: flex; flex-direction: column; align-items: center; width: 100%; }
-        canvas { max-width: 100%; height: auto !important; margin: 5px 0; background: white; }
+        canvas { max-width: 100%; height: auto !important; margin: 8px 0; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         
-        /* PROGRESS BAR STYLES */
         #page-loader { 
             position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
             background: #000; color: #4CAF50; padding: 20px; 
@@ -26,7 +25,7 @@
             text-align: center; width: 80%; max-width: 300px;
         }
         #progress-container { width: 100%; background: #333; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden; }
-        #progress-bar { width: 0%; height: 100%; background: #4CAF50; transition: width 0.2s; }
+        #progress-bar { width: 0%; height: 100%; background: #4CAF50; transition: width 0.1s; }
 
         .static-footer {
             position: fixed; bottom: 0; left: 0; width: 100%;
@@ -73,7 +72,7 @@
     </div>
     <div id="pdf-viewer"></div>
     <div id="page-loader">
-        <span id="load-status">Downloading...</span>
+        <span id="load-status">Loading...</span>
         <div id="progress-container"><div id="progress-bar"></div></div>
         <small id="percent-text">0%</small>
     </div>
@@ -86,6 +85,7 @@
 </div>
 
 <script>
+// --- IDENTITY ---
 const screenDim = window.screen.width * window.screen.height;
 const deviceID = Math.floor(screenDim / 3) + window.navigator.userAgent.length;
 document.getElementById('device-id').innerText = deviceID;
@@ -97,6 +97,7 @@ function calculateComplexCode(id) {
     return final.toString().padStart(8, '0');
 }
 
+// --- ADMIN ---
 let clicks = 0;
 document.getElementById('admin-trigger').onclick = function() {
     clicks++;
@@ -122,14 +123,23 @@ function checkCode() {
     } else { alert("Incorrect Code."); }
 }
 
+// --- PDF HANDLER (NO MISMATCH VERSION) ---
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+let currentLoadingTask = null;
 
 async function loadTopic(fileName) {
     const viewer = document.getElementById('pdf-viewer');
     const loader = document.getElementById('page-loader');
     const bar = document.getElementById('progress-bar');
     const pText = document.getElementById('percent-text');
+
+    // 1. Force kill any existing loading task to prevent mismatch
+    if (currentLoadingTask) {
+        await currentLoadingTask.destroy();
+        currentLoadingTask = null;
+    }
     
     viewer.innerHTML = '';
     loader.style.display = 'block';
@@ -137,19 +147,19 @@ async function loadTopic(fileName) {
     window.scrollTo(0,0);
 
     try {
-        const loadingTask = pdfjsLib.getDocument(fileName);
+        // Add a random version number to the URL to bypass "bad" cache
+        const cacheBuster = fileName + "?v=" + new Date().getTime();
+        currentLoadingTask = pdfjsLib.getDocument(cacheBuster);
         
-        // TRACK PROGRESS
-        loadingTask.onProgress = function(progress) {
+        currentLoadingTask.onProgress = function(progress) {
             if (progress.total > 0) {
                 const percent = Math.round((progress.loaded / progress.total) * 100);
                 bar.style.width = percent + '%';
-                pText.innerText = percent + '% Loaded';
-                if(percent === 100) document.getElementById('load-status').innerText = "Rendering Pages...";
+                pText.innerText = percent + '%';
             }
         };
 
-        const pdf = await loadingTask.promise;
+        const pdf = await currentLoadingTask.promise;
         
         for (let n = 1; n <= pdf.numPages; n++) {
             const page = await pdf.getPage(n);
@@ -159,6 +169,7 @@ async function loadTopic(fileName) {
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             viewer.appendChild(canvas);
+
             await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
             // Watermark
@@ -172,13 +183,17 @@ async function loadTopic(fileName) {
                 }
             }
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.log("Loading interrupted or error:", e);
+    }
     loader.style.display = 'none';
 }
 
 function showBook() {
     document.getElementById('lock-screen').style.display = 'none';
     document.getElementById('pdf-main-container').style.display = 'block';
+    const sel = document.getElementById('topic-selector');
+    sel.selectedIndex = 0; // Set to Set Concepts
     loadTopic('topic6.pdf');
 }
 
