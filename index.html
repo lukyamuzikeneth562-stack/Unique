@@ -8,7 +8,8 @@
     <style>
         body { font-family: Arial, sans-serif; background: #121212; color: white; margin: 0; padding-bottom: 70px; overflow-x: hidden; }
         
-        #lock-screen { text-align: center; padding: 40px 20px; }
+        #lock-screen, #terms-screen { text-align: center; padding: 40px 20px; }
+        #terms-screen { display: none; } /* Hidden by default */
         #pdf-main-container { display: none; width: 100%; }
         
         #topic-header {
@@ -36,7 +37,6 @@
             margin: 5px 0; background: white;
         }
         
-        /* UPDATED LOADING BOX */
         #page-loader { 
             position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.9); color: #4CAF50; padding: 15px 25px; 
@@ -58,6 +58,14 @@
         }
         .wa-icon { width: 18px; height: 18px; margin: 0 5px; vertical-align: middle; }
         .instruction-box { background: #222; border: 1px dashed #555; padding: 15px; margin: 20px auto; width: 90%; max-width: 400px; border-radius: 10px; }
+        
+        /* Terms Box Styling */
+        .terms-box { 
+            background: #1a1a1a; border: 2px solid #ff0000; padding: 20px; 
+            text-align: left; margin: 20px auto; width: 90%; max-width: 500px; 
+            border-radius: 10px; line-height: 1.6; font-size: 0.9rem;
+        }
+        .warning-text { color: #ff0000; font-weight: bold; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -75,6 +83,21 @@
     <input type="text" id="user-key" placeholder="Enter Unlock Code" style="padding: 15px; width: 250px; border-radius: 8px; border: 1px solid #444; background: #000; color: white; text-align:center; font-size:1.1rem;">
     <br>
     <button class="btn" style="background: #4CAF50; color: white;" onclick="checkCode()">Unlock Now</button>
+</div>
+
+<div id="terms-screen">
+    <h2 style="color: #ffcc00;">⚠️ LEGAL WARNING</h2>
+    <div class="terms-box">
+        <p class="warning-text">Security Protocol Active:</p>
+        <ul>
+            <li>This book is digitally watermarked with your <strong>Device ID</strong>.</li>
+            <li>Sharing screenshots, recordings, or printing any part of this book is <strong>STRICTLY PROHIBITED</strong>.</li>
+            <li>Any attempt to distribute this content will result in an <strong>IMMEDIATE PERMANENT BLOCK</strong> of your Device ID.</li>
+            <li>Blacklisted devices cannot be re-activated even with a new code.</li>
+        </ul>
+        <p>By clicking "I AGREE", you accept full responsibility for the safety of this digital copy.</p>
+    </div>
+    <button class="btn" style="background: #4CAF50; color: white;" onclick="acceptTerms()">I AGREE & OPEN BOOK</button>
 </div>
 
 <div id="pdf-main-container">
@@ -142,8 +165,21 @@ function checkCode() {
     const input = document.getElementById('user-key').value.trim();
     if (input === calculateComplexCode(deviceID)) {
         localStorage.setItem('unlocked', 'true');
-        showBook();
+        document.getElementById('lock-screen').style.display = 'none';
+        document.getElementById('terms-screen').style.display = 'block';
     } else { alert("Incorrect Code."); }
+}
+
+function acceptTerms() {
+    localStorage.setItem('termsAccepted', 'true');
+    showBook();
+}
+
+function showBook() {
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('terms-screen').style.display = 'none';
+    document.getElementById('pdf-main-container').style.display = 'block';
+    loadTopic('topic6.pdf');
 }
 
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
@@ -169,7 +205,6 @@ async function loadTopic(fileName) {
         const loadingTask = pdfjsLib.getDocument(fileName);
         currentTask = loadingTask;
 
-        // TRACK DOWNLOAD PERCENTAGE
         loadingTask.onProgress = function(progress) {
             if (progress.total > 0) {
                 const percent = Math.round((progress.loaded / progress.total) * 100);
@@ -201,22 +236,22 @@ async function loadTopic(fileName) {
                     }
                 }
             });
-            // Update UI with page count
             pText.innerText = `Rendering ${n} of ${pdf.numPages}`;
         }
     } catch (e) { console.error(e); }
-    // Short delay before hiding loader for better feel
     setTimeout(() => { loader.style.display = 'none'; }, 1000);
 }
 
-function showBook() {
-    document.getElementById('lock-screen').style.display = 'none';
-    document.getElementById('pdf-main-container').style.display = 'block';
-    loadTopic('topic6.pdf');
-}
-
 window.onload = () => {
-    if (localStorage.getItem('unlocked') === 'true') { showBook(); }
+    const isUnlocked = localStorage.getItem('unlocked') === 'true';
+    const hasAgreed = localStorage.getItem('termsAccepted') === 'true';
+    
+    if (isUnlocked && hasAgreed) {
+        showBook();
+    } else if (isUnlocked && !hasAgreed) {
+        document.getElementById('lock-screen').style.display = 'none';
+        document.getElementById('terms-screen').style.display = 'block';
+    }
 };
 
 if ('serviceWorker' in navigator) {
