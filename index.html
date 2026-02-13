@@ -8,9 +8,18 @@
     <style>
         body { font-family: Arial, sans-serif; background: #121212; color: white; margin: 0; padding-bottom: 70px; overflow-x: hidden; }
         
-        #lock-screen, #terms-screen { text-align: center; padding: 40px 20px; }
-        #terms-screen { display: none; } /* Hidden by default */
+        #lock-screen { text-align: center; padding: 40px 20px; }
         #pdf-main-container { display: none; width: 100%; }
+        
+        /* Modal Overlay for Terms */
+        #terms-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 5000; justify-content: center; align-items: center;
+        }
+        .terms-content {
+            background: #1a1a1a; border: 2px solid #ff0000; padding: 25px; 
+            width: 85%; max-width: 450px; border-radius: 15px; text-align: center;
+        }
         
         #topic-header {
             position: sticky; top: 0; background: #1e1e1e;
@@ -28,14 +37,8 @@
         .mtn { background: #ffcc00; color: black; }
         .airtel { background: #ff0000; color: white; }
         
-        #pdf-viewer { 
-            display: flex; flex-direction: column; align-items: center; 
-            width: 100%; margin: 0 auto; padding: 0;
-        }
-        #pdf-viewer canvas { 
-            max-width: 100%; height: auto !important; 
-            margin: 5px 0; background: white;
-        }
+        #pdf-viewer { display: flex; flex-direction: column; align-items: center; width: 100%; margin: 0 auto; padding: 0; }
+        #pdf-viewer canvas { max-width: 100%; height: auto !important; margin: 5px 0; background: white; }
         
         #page-loader { 
             position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%);
@@ -43,12 +46,8 @@
             border-radius: 15px; display: none; z-index: 2000; font-size: 1rem;
             width: 80%; max-width: 300px; text-align: center; border: 1px solid #4CAF50;
         }
-        #progress-container {
-            width: 100%; background: #333; height: 8px; border-radius: 4px; margin-top: 10px; overflow: hidden;
-        }
-        #progress-bar {
-            width: 0%; height: 100%; background: #4CAF50; transition: width 0.2s;
-        }
+        #progress-container { width: 100%; background: #333; height: 8px; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+        #progress-bar { width: 0%; height: 100%; background: #4CAF50; transition: width 0.2s; }
 
         .static-footer {
             position: fixed; bottom: 0; left: 0; width: 100%;
@@ -58,17 +57,22 @@
         }
         .wa-icon { width: 18px; height: 18px; margin: 0 5px; vertical-align: middle; }
         .instruction-box { background: #222; border: 1px dashed #555; padding: 15px; margin: 20px auto; width: 90%; max-width: 400px; border-radius: 10px; }
-        
-        /* Terms Box Styling */
-        .terms-box { 
-            background: #1a1a1a; border: 2px solid #ff0000; padding: 20px; 
-            text-align: left; margin: 20px auto; width: 90%; max-width: 500px; 
-            border-radius: 10px; line-height: 1.6; font-size: 0.9rem;
-        }
-        .warning-text { color: #ff0000; font-weight: bold; text-transform: uppercase; }
+        .warning-text { color: #ff0000; font-weight: bold; font-size: 0.85rem; text-align: left; line-height: 1.4; }
     </style>
 </head>
 <body>
+
+<div id="terms-modal">
+    <div class="terms-content">
+        <h2 style="color: #ffcc00; margin-top: 0;">⚠️ PROTECTION NOTICE</h2>
+        <div class="warning-text">
+            <p>1. Screenshots and sharing are <strong>STRICTLY PROHIBITED</strong>.</p>
+            <p>2. Your Device ID (<span id="modal-id" style="color:#00ff00"></span>) is watermarked on every page.</p>
+            <p>3. Violators will be <strong>BLACKLISTED</strong> from all future books.</p>
+        </div>
+        <button class="btn" style="background: #4CAF50; color: white;" onclick="confirmAndLoad()">I AGREE & OPEN TOPIC</button>
+    </div>
+</div>
 
 <div id="lock-screen">
     <h2 id="admin-trigger">🔒 Book Locked</h2>
@@ -85,26 +89,9 @@
     <button class="btn" style="background: #4CAF50; color: white;" onclick="checkCode()">Unlock Now</button>
 </div>
 
-<div id="terms-screen">
-    <h2 style="color: #ffcc00;">⚠️ LEGAL WARNING</h2>
-    <div class="terms-box">
-        <p class="warning-text">Security Protocol Active:</p>
-        <ul>
-            <li>This book is digitally watermarked with your <strong>Device ID</strong>.</li>
-            <li>Sharing screenshots, recordings, or printing any part of this book is <strong>STRICTLY PROHIBITED</strong>.</li>
-            <li>Any attempt to distribute this content will result in an <strong>IMMEDIATE PERMANENT BLOCK</strong> of your Device ID.</li>
-            <li>Blacklisted devices cannot be re-activated even with a new code.</li>
-            <li> By using this service, you acknowledge that the author maintains the right to monitor app activity and may suspend
-                or block access for any user who violates these terms or engages in misconduct.</li>
-        </ul>
-        <p>By clicking "I AGREE", you accept full responsibility for the safety of this digital copy.</p>
-    </div>
-    <button class="btn" style="background: #4CAF50; color: white;" onclick="acceptTerms()">I AGREE & OPEN BOOK</button>
-</div>
-
 <div id="pdf-main-container">
     <div id="topic-header">
-        <select id="topic-selector" onchange="loadTopic(this.value)">
+        <select id="topic-selector" onchange="triggerTopicWarning(this.value)">
             <option value="topic6.pdf">1. Set Concepts</option>
             <option value="topic5.pdf">2. Whole Numbers</option>
             <option value="topic1.pdf">3. Operations on Whole Numbers</option>
@@ -134,9 +121,11 @@
 </div>
 
 <script>
+// --- CORE IDENTITY ---
 const screenDim = window.screen.width * window.screen.height;
 const deviceID = Math.floor(screenDim / 3) + window.navigator.userAgent.length;
 document.getElementById('device-id').innerText = deviceID;
+document.getElementById('modal-id').innerText = deviceID;
 
 function calculateComplexCode(id) {
     const mathMagic = Math.abs(Math.sin(id) * 10000000);
@@ -145,6 +134,7 @@ function calculateComplexCode(id) {
     return final.toString().padStart(8, '0');
 }
 
+// --- ADMIN ---
 let clicks = 0;
 document.getElementById('admin-trigger').onclick = function() {
     clicks++;
@@ -167,23 +157,31 @@ function checkCode() {
     const input = document.getElementById('user-key').value.trim();
     if (input === calculateComplexCode(deviceID)) {
         localStorage.setItem('unlocked', 'true');
-        document.getElementById('lock-screen').style.display = 'none';
-        document.getElementById('terms-screen').style.display = 'block';
+        showBook();
     } else { alert("Incorrect Code."); }
 }
 
-function acceptTerms() {
-    localStorage.setItem('termsAccepted', 'true');
-    showBook();
+// --- TOPIC CONTROL WITH WARNING ---
+let pendingFile = "";
+
+function triggerTopicWarning(fileName) {
+    pendingFile = fileName;
+    document.getElementById('terms-modal').style.display = 'flex';
+}
+
+function confirmAndLoad() {
+    document.getElementById('terms-modal').style.display = 'none';
+    if(pendingFile) loadTopic(pendingFile);
 }
 
 function showBook() {
     document.getElementById('lock-screen').style.display = 'none';
-    document.getElementById('terms-screen').style.display = 'none';
     document.getElementById('pdf-main-container').style.display = 'block';
-    loadTopic('topic6.pdf');
+    // Load first topic with a warning
+    triggerTopicWarning('topic6.pdf');
 }
 
+// --- PDF ENGINE ---
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 let currentTask = null;
@@ -245,15 +243,7 @@ async function loadTopic(fileName) {
 }
 
 window.onload = () => {
-    const isUnlocked = localStorage.getItem('unlocked') === 'true';
-    const hasAgreed = localStorage.getItem('termsAccepted') === 'true';
-    
-    if (isUnlocked && hasAgreed) {
-        showBook();
-    } else if (isUnlocked && !hasAgreed) {
-        document.getElementById('lock-screen').style.display = 'none';
-        document.getElementById('terms-screen').style.display = 'block';
-    }
+    if (localStorage.getItem('unlocked') === 'true') { showBook(); }
 };
 
 if ('serviceWorker' in navigator) {
